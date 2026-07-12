@@ -1303,19 +1303,18 @@ function initMindmapPanZoom(){
   w.querySelectorAll('.mmbranch').forEach(g=>{
     g.addEventListener('pointerdown',e=>{
       if(e.target.closest&&e.target.closest('.mml-num'))return; // bấm badge số thì mở danh sách, không kéo
-      e.stopPropagation();
+      e.stopPropagation(); e.preventDefault();
       const id=g.dataset.id, sx=+g.dataset.sx, sy=+g.dataset.sy, bx=+g.dataset.bx, lyv=+g.dataset.lyv;
       const path=$('mmp_'+id);
       let cdx=+g.dataset.dx||0, cdy=+g.dataset.dy||0, px=e.clientX, py=e.clientY, mv=0;
-      try{g.setPointerCapture(e.pointerId)}catch(_){}
       g.classList.add('dragging');
-      const move=ev=>{ const ddx=(ev.clientX-px)/MMV.s, ddy=(ev.clientY-py)/MMV.s; px=ev.clientX;py=ev.clientY; cdx+=ddx;cdy+=ddy; mv+=Math.abs(ddx)+Math.abs(ddy);
+      const move=ev=>{ ev.preventDefault(); const ddx=(ev.clientX-px)/MMV.s, ddy=(ev.clientY-py)/MMV.s; px=ev.clientX;py=ev.clientY; cdx+=ddx;cdy+=ddy; mv+=Math.abs(ddx)+Math.abs(ddy);
         g.setAttribute('transform',`translate(${cdx} ${cdy})`);
         if(path){ const nx=bx+cdx, ny=lyv+cdy, mid=Math.round((sx+nx)/2); path.setAttribute('d',`M ${sx} ${sy} C ${mid} ${sy}, ${mid} ${ny}, ${nx} ${ny}`); } };
-      const done=()=>{ g.removeEventListener('pointermove',move); g.removeEventListener('pointerup',done); g.removeEventListener('pointercancel',done); g.classList.remove('dragging');
+      const done=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',done); window.removeEventListener('pointercancel',done); g.classList.remove('dragging');
         g.dataset.dx=cdx; g.dataset.dy=cdy;
         if(mv>4){ MM_DRAGGED=true; setTimeout(()=>{MM_DRAGGED=false},80); const a=findArea(id); if(a){ a.off={dx:Math.round(cdx),dy:Math.round(cdy)}; persistGoals(); } } };
-      g.addEventListener('pointermove',move); g.addEventListener('pointerup',done); g.addEventListener('pointercancel',done);
+      window.addEventListener('pointermove',move); window.addEventListener('pointerup',done); window.addEventListener('pointercancel',done);
     });
     // Bấm đúp để trả cụm về vị trí tự động
     g.addEventListener('dblclick',e=>{ e.stopPropagation(); const a=findArea(g.dataset.id); if(a&&a.off){ delete a.off; persistGoals(); renderGoals(); } });
