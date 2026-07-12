@@ -408,7 +408,10 @@
   .mmzoom span{font-size:12.5px;font-weight:700;min-width:44px;text-align:center;color:var(--ink-soft)}
   .mmhint2{position:absolute;left:16px;bottom:18px;font-size:12px;color:var(--ink-faint);background:rgba(255,255,255,.6);padding:4px 10px;border-radius:999px;pointer-events:none}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
-  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;gap:4px;cursor:pointer;padding:0 4px}
+  .mmbranch{cursor:grab}
+  .mmbranch.dragging{cursor:grabbing}
+  .mmbranch.dragging .mml{opacity:.9}
+  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;gap:4px;cursor:grab;padding:0 4px}
   .mml>*{width:100%}
   .mml-r{text-align:left}
   .mml-l{text-align:left}
@@ -1284,16 +1287,39 @@ function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`transla
 function mmFit(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; const s=Math.min(fw/W, fh/H)*0.94; MMV.s=s; MMV.x=(fw-W*s)/2; MMV.y=(fh-H*s)/2; mmApply(); }
 function mmZoomAt(cx,cy,f){ const ns=Math.max(.2,Math.min(3.5,MMV.s*f)); MMV.x=cx-(cx-MMV.x)*(ns/MMV.s); MMV.y=cy-(cy-MMV.y)*(ns/MMV.s); MMV.s=ns; mmApply(); }
 function mmZoom(dir){ const w=$('mmWrap'); if(!w)return; mmZoomAt(w.clientWidth/2, w.clientHeight/2, dir>0?1.2:1/1.2); }
+let MM_DRAGGED=false;
+function mmBranchClick(id){ if(MM_DRAGGED)return; scrollToGoal(id); }
 function initMindmapPanZoom(){
-  const w=$('mmWrap'); if(!w||w._pz)return; w._pz=1;
+  const w=$('mmWrap'); if(!w)return;
   mmFit();
+  // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
-  w.addEventListener('pointerdown',e=>{ if(e.target.closest&&e.target.closest('.mmzoom'))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointerdown',e=>{ if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
   w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
-  const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); if(moved>6){ w._sc=1; setTimeout(()=>{w._sc=0},60);} };
+  const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); };
   w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
-  w.addEventListener('click',e=>{ if(w._sc){ e.stopPropagation(); e.preventDefault(); } },true);
   w.addEventListener('wheel',e=>{ e.preventDefault(); const r=w.getBoundingClientRect(); mmZoomAt(e.clientX-r.left,e.clientY-r.top, e.deltaY<0?1.12:1/1.12); },{passive:false});
+  // Kéo-thả từng cụm nhánh để sắp xếp thủ công
+  w.querySelectorAll('.mmbranch').forEach(g=>{
+    g.addEventListener('pointerdown',e=>{
+      if(e.target.closest&&e.target.closest('.mml-num'))return; // bấm badge số thì mở danh sách, không kéo
+      e.stopPropagation();
+      const id=g.dataset.id, sx=+g.dataset.sx, sy=+g.dataset.sy, bx=+g.dataset.bx, lyv=+g.dataset.lyv;
+      const path=$('mmp_'+id);
+      let cdx=+g.dataset.dx||0, cdy=+g.dataset.dy||0, px=e.clientX, py=e.clientY, mv=0;
+      try{g.setPointerCapture(e.pointerId)}catch(_){}
+      g.classList.add('dragging');
+      const move=ev=>{ const ddx=(ev.clientX-px)/MMV.s, ddy=(ev.clientY-py)/MMV.s; px=ev.clientX;py=ev.clientY; cdx+=ddx;cdy+=ddy; mv+=Math.abs(ddx)+Math.abs(ddy);
+        g.setAttribute('transform',`translate(${cdx} ${cdy})`);
+        if(path){ const nx=bx+cdx, ny=lyv+cdy, mid=Math.round((sx+nx)/2); path.setAttribute('d',`M ${sx} ${sy} C ${mid} ${sy}, ${mid} ${ny}, ${nx} ${ny}`); } };
+      const done=()=>{ g.removeEventListener('pointermove',move); g.removeEventListener('pointerup',done); g.removeEventListener('pointercancel',done); g.classList.remove('dragging');
+        g.dataset.dx=cdx; g.dataset.dy=cdy;
+        if(mv>4){ MM_DRAGGED=true; setTimeout(()=>{MM_DRAGGED=false},80); const a=findArea(id); if(a){ a.off={dx:Math.round(cdx),dy:Math.round(cdy)}; persistGoals(); } } };
+      g.addEventListener('pointermove',move); g.addEventListener('pointerup',done); g.addEventListener('pointercancel',done);
+    });
+    // Bấm đúp để trả cụm về vị trí tự động
+    g.addEventListener('dblclick',e=>{ e.stopPropagation(); const a=findArea(g.dataset.id); if(a&&a.off){ delete a.off; persistGoals(); renderGoals(); } });
+  });
 }
 // Mindmap kiểu XMind: nhánh cong nhiều màu; nhãn nhánh hiện đủ 🌟 mục tiêu cuộc đời + 🎯 mục tiêu năm (tự xuống dòng); "lá" = check-in gạch chân; thẻ đỏ ở giữa.
 function buildMindmap(areas){
@@ -1343,20 +1369,23 @@ function buildMindmap(areas){
       const outX=side>0?bnx+LW:bnx-LW;          // mép ngoài nhãn
       const topY=by-lh2/2;                      // đỉnh khối nhãn
       const lineY=Math.round(topY+headH(a)-HEAD_GAP/2); // đường kẻ ngay dưới tiêu đề (giống ảnh mẫu)
-      // nhánh chính: đường cong mượt với điểm điều khiển ở TRUNG ĐIỂM ngang (kiểu XMind, không cắt nhau)
-      const midX=Math.round((sx+bnx)/2);
-      paths+=`<path d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${lineY}, ${bnx} ${lineY}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
-      // đường kẻ chạy dưới tiêu đề
-      paths+=`<line x1="${bnx}" y1="${lineY}" x2="${outX}" y2="${lineY}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
+      const off=(a.off&&typeof a.off.dx==='number')?a.off:{dx:0,dy:0}; // vị trí kéo thủ công
+      const ex=bnx+off.dx, ey=lineY+off.dy, midX=Math.round((sx+ex)/2);
+      // nhánh chính: đường cong mượt (điểm điều khiển ở trung điểm) — có id để cập nhật khi kéo cụm
+      paths+=`<path id="mmp_${a.id}" d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ey}, ${ex} ${ey}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
       const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
       const badge=`<span class="mml-num" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem ${cnt} post link vào">${cnt}</span>`;
-      const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="scrollToGoal('${a.id}')">`+
+      const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="mmBranchClick('${a.id}')">`+
         `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span></div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
         ((yr||cnt)?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)} ${badge}</div>`:'')+
         `</div>`;
-      labels+=`<foreignObject x="${foX}" y="${Math.round(by-lh2/2)}" width="${LW}" height="${Math.round(lh2)}" style="overflow:visible">${inner}</foreignObject>`;
+      // cả cụm (đường kẻ dưới tiêu đề + nhãn) bọc trong <g> kéo-thả được
+      labels+=`<g class="mmbranch" data-id="${a.id}" data-sx="${sx}" data-sy="${sy}" data-bx="${bnx}" data-lyv="${lineY}" data-dx="${off.dx}" data-dy="${off.dy}" transform="translate(${off.dx},${off.dy})">`+
+        `<line x1="${bnx}" y1="${lineY}" x2="${outX}" y2="${lineY}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`+
+        `<foreignObject x="${Math.round(foX)}" y="${Math.round(topY)}" width="${LW}" height="${Math.round(lh2)}" style="overflow:visible">${inner}</foreignObject>`+
+        `</g>`;
     });
   }
   place(Rt,1); place(Lt,-1);
@@ -1373,7 +1402,7 @@ function buildMindmap(areas){
         `<button onclick="mmZoom(1)" title="Phóng to">+</button>`+
         `<button onclick="mmFit()" title="Vừa khung">⤢</button>`+
       `</div>`+
-      `<div class="mmhint2">Kéo để di chuyển · lăn chuột / nút +− để phóng to</div>`+
+      `<div class="mmhint2">Kéo nền để di chuyển · kéo 1 cụm để sắp xếp (bấm đúp = về chỗ cũ) · lăn chuột / +− để zoom</div>`+
     `</div>`;
 }
 function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('gc-flash');setTimeout(()=>el.classList.remove('gc-flash'),1000);} }
