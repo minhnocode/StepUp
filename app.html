@@ -513,10 +513,15 @@
   .mm-hint2{text-align:center;color:var(--ink-faint);font-size:12px;margin:6px 0 2px}
   /* Bảng kiểu Trello (dưới mindmap) — full width, nhiều màu */
   .kb-wrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:18px;margin-bottom:6px;padding:16px max(24px,4vw) 10px;background:linear-gradient(180deg,#FBF4E2 0%,#FAF6EC 100%);border-top:1px solid var(--line)}
+  .kb-title-row{font-family:var(--serif);font-weight:600;font-size:17px;margin:2px 2px 14px;color:var(--ink)}
   .kb-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:14px;align-items:flex-start}
-  .kb-boardlabel{flex:none;width:132px;align-self:stretch;padding:6px 14px 0 0;position:sticky;left:0;z-index:3;background:linear-gradient(90deg,#FBF4E2 78%,rgba(251,244,226,0))}
-  .kb-bl-t{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink);line-height:1.2}
-  .kb-bl-s{font-size:11.5px;color:var(--ink-faint);margin-top:5px;line-height:1.45}
+  /* 2 cột đặc biệt: Thành tựu & Biết ơn */
+  .kb-stitle{flex:1;min-width:0;font-weight:800;font-size:15px;color:#fff;padding:5px 7px;letter-spacing:.2px}
+  .kb-sbody{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px;min-height:52px}
+  .kb-scard{background:#fff;border:1px solid color-mix(in srgb,var(--kc) 26%,var(--line));border-left:4px solid var(--kc);border-radius:10px;padding:9px 11px;box-shadow:0 2px 6px color-mix(in srgb,var(--kc) 16%,transparent)}
+  .kb-sc-t{font-weight:700;font-size:13px;color:var(--ink);margin-bottom:7px;word-break:break-word}
+  .kb-sc-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .kb-sempty{color:var(--ink-faint);font-size:12.5px;padding:10px 4px;line-height:1.5}
   .kb-col{flex:0 0 300px;max-width:300px;border-radius:16px;display:flex;flex-direction:column;max-height:76vh;overflow:hidden;background:color-mix(in srgb, var(--kc) 8%, #fff);border:1px solid color-mix(in srgb, var(--kc) 30%, var(--line));box-shadow:0 6px 18px color-mix(in srgb, var(--kc) 22%, transparent)}
   .kb-head{display:flex;align-items:center;gap:6px;padding:11px 10px;background:var(--kc)}
   .kb-grip{flex:none;cursor:grab;color:rgba(255,255,255,.85);font-size:15px;line-height:1;padding:2px 2px;user-select:none}
@@ -1413,13 +1418,12 @@ function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
   const mm = N ? buildMindmap(areas)
     : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
-  const highlights = '<div class="ghl">'+achSectionHTML()+gratSectionHTML()+'</div>';
   // editor nhật ký hôm nay ở cuối
   const e=BYDATE[todayISO()];
   edCur=e?JSON.parse(JSON.stringify(e)):{id:'',date:todayISO(),data:{},images:[]};
   const today='<div class="q-card gtoday"><div class="q-head">✍️ Nhật ký hôm nay · '+weekdayName(todayISO())+' '+fmtD(todayISO())+'</div>'+editorHTML(edCur,false)+'<div class="gtoday-hint">Tự động lưu khi bạn nhập.</div></div>';
   $('fieldsHost').innerHTML=''; $('homeToday').innerHTML='';   // tránh trùng id editor
-  $('goalsList').innerHTML = mm + renderBoard() + highlights + today;
+  $('goalsList').innerHTML = mm + renderBoard() + today;
   if(N) initMindmapPanZoom();
   initBoardDnD();
   edGrowAll('goalsList');
@@ -1446,8 +1450,20 @@ function renderBoard(){
       `<div class="kb-add"><input class="kb-in" placeholder="Thêm thẻ…" onkeydown="if(event.key==='Enter'){event.preventDefault();kbAddCard('${c.id}',this)}"><button class="kb-addb" onclick="kbAddCard('${c.id}',this.previousElementSibling)">＋</button></div>`+
     `</div>`;
   }).join('');
-  return `<div class="kb-wrap">`+
-    `<div class="kb-board"><div class="kb-boardlabel"><div class="kb-bl-t">🗂️ Bảng</div><div class="kb-bl-s">kéo thẻ sang cột khác</div></div>${cols}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
+  return `<div class="kb-wrap"><div class="kb-title-row">🗂️ Bảng (kéo thẻ sang cột khác)</div>`+
+    `<div class="kb-board">${cols}${achColumnHTML()}${gratColumnHTML()}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
+}
+// 2 cột đặc biệt tham chiếu dữ liệu (chỉ đọc): Thành tựu & Biết ơn
+function achColumnHTML(){
+  const ach=[]; FIELDS.forEach(f=>{if(f.type!=='checklist')return;(f.options||[]).forEach(opt=>{ const days=ENTRIES.filter(e=>normCheck((e.data||{})[f.id]).done.indexOf(opt)>=0).map(e=>e.date).sort(); if(days.length)ach.push({label:opt,dates:days}); })});
+  const cards=ach.length?ach.map(a=>`<div class="kb-scard"><div class="kb-sc-t">✓ ${escapeHtml(a.label)}</div><div class="kb-sc-chips">${a.dates.map((d,j)=>`<span class="daychip c${j%8}" onclick="openDayISO('${d}')">${d.slice(8,10)}/${d.slice(5,7)}</span>`).join('')}</div></div>`).join(''):'<div class="kb-sempty">Chưa có thành tựu — tick ở nhật ký hôm nay.</div>';
+  return `<div class="kb-col kb-scol" style="--kc:#E0913C"><div class="kb-head"><div class="kb-stitle">🏆 Thành tựu</div><span class="kb-count">${ach.length}</span></div><div class="kb-sbody">${cards}</div></div>`;
+}
+function gratColumnHTML(){
+  const gmap={},order=[]; ENTRIES.forEach(e=>FIELDS.forEach(f=>{if(f.type!=='gratitude')return;const v=(e.data||{})[f.id];if(!Array.isArray(v))return; v.forEach(g=>{if(!g)return;const isObj=typeof g==='object';const person=(isObj&&g.person?String(g.person).trim():'')||'(chưa gắn tên)';const text=isObj?(g.text||''):String(g);if(!gmap[person]){gmap[person]=[];order.push(person)}gmap[person].push({text,date:e.date})}); }));
+  const persons=order.sort((a,b)=>gmap[b].length-gmap[a].length);
+  const cards=persons.length?persons.map(p=>`<div class="kb-scard"><div class="kb-sc-t">🙏 ${escapeHtml(p)}</div><div class="kb-sc-chips">${gmap[p].map((it,j)=>`<span class="gchip c${j%8}" onclick="openDayISO('${it.date}')">${escapeHtml(it.text)||'(trống)'}<span class="gd">${it.date.slice(8,10)}/${it.date.slice(5,7)}</span></span>`).join('')}</div></div>`).join(''):'<div class="kb-sempty">Chưa có — ghi ở nhật ký hôm nay.</div>';
+  return `<div class="kb-col kb-scol" style="--kc:#159AA8"><div class="kb-head"><div class="kb-stitle">🙏 Biết ơn</div><span class="kb-count">${persons.length}</span></div><div class="kb-sbody">${cards}</div></div>`;
 }
 function kbAddCol(){ const b=kbBoard(); b.cols.push({id:goalUid(),title:'Cột mới',cards:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const els=document.querySelectorAll('.kb-title');const el=els[els.length-1];if(el){el.focus();el.select();}},40); }
 function kbDelCol(id){ const c=kbCol(id); if(!c)return; if((c.cards||[]).length && !confirm('Xoá cột này (cả '+c.cards.length+' thẻ)?'))return; const b=kbBoard(); b.cols=b.cols.filter(x=>x.id!==id); persistGoals(); renderGoals(); }
@@ -1519,7 +1535,7 @@ function initBoardDnD(){
     gr.addEventListener('dragstart',e=>{ KBCOLDRAG=col.dataset.col; KBDRAG=null; setTimeout(()=>col.classList.add('coldragging'),0); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','col')}catch(_){}} );
     gr.addEventListener('dragend',()=>{ col.classList.remove('coldragging'); document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('col-before','col-after')); KBCOLDRAG=null; });
   });
-  document.querySelectorAll('.kb-col').forEach(col=>{
+  document.querySelectorAll('.kb-col:not(.kb-scol)').forEach(col=>{
     col.addEventListener('dragover',e=>{ if(!KBCOLDRAG)return; e.preventDefault(); const r=col.getBoundingClientRect(); const before=e.clientX<r.left+r.width/2; col.classList.toggle('col-before',before); col.classList.toggle('col-after',!before); });
     col.addEventListener('dragleave',e=>{ if(!col.contains(e.relatedTarget)) col.classList.remove('col-before','col-after'); });
     col.addEventListener('drop',e=>{ if(!KBCOLDRAG)return; e.preventDefault(); const r=col.getBoundingClientRect(); const before=e.clientX<r.left+r.width/2; const from=KBCOLDRAG, to=col.dataset.col; col.classList.remove('col-before','col-after'); if(from!==to) kbMoveCol(from,to,before); KBCOLDRAG=null; });
