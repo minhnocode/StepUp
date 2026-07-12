@@ -1309,16 +1309,19 @@ function buildMindmap(areas){
     list.forEach((a,idx)=>{
       const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+GAP;
       const col=GTONES[idxOf(a)%GTONES.length];
-      const sx=cx+side*(centerW/2-4);
-      const sy=Math.round(cy+(idx-(R-1)/2)*(centerH*0.42/Math.max(R-1,1)));
+      const sx=cx+side*(centerW/2-6);
+      // điểm xuất phát trải đều dọc mép thẻ theo thứ tự trên->dưới (tránh chụm & chồng nhánh)
+      const spread=Math.min(centerH-34,centerH*0.86);
+      const sy=Math.round(R>1 ? cy-spread/2+idx*(spread/(R-1)) : cy);
       const bnx=cx+side*bnxOff;                 // mép nhãn phía trong (nối với nhánh)
       const lh2=labelH(a);
       const foX=side>0?bnx:bnx-LW;              // góc trái foreignObject
       const outX=side>0?bnx+LW:bnx-LW;          // mép ngoài nhãn
       const topY=by-lh2/2;                      // đỉnh khối nhãn
       const lineY=Math.round(topY+headH(a)-HEAD_GAP/2); // đường kẻ ngay dưới tiêu đề (giống ảnh mẫu)
-      // nhánh chính: từ thẻ giữa -> nối vào ĐƯỜNG KẺ dưới tiêu đề
-      paths+=`<path d="M ${sx} ${sy} C ${sx+side*80} ${sy}, ${bnx-side*80} ${lineY}, ${bnx} ${lineY}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`;
+      // nhánh chính: đường cong mượt với điểm điều khiển ở TRUNG ĐIỂM ngang (kiểu XMind, không cắt nhau)
+      const midX=Math.round((sx+bnx)/2);
+      paths+=`<path d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${lineY}, ${bnx} ${lineY}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
       // đường kẻ chạy dưới tiêu đề
       paths+=`<line x1="${bnx}" y1="${lineY}" x2="${outX}" y2="${lineY}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
