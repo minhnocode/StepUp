@@ -1650,18 +1650,12 @@ function buildMindmap(areas){
     const R=list.length; if(!R)return;
     const bandsSum=list.reduce((s,a)=>s+bandOf(a),0);
     const gap=R>1?(span-bandsSum)/(R-1):0;   // trải đều 2 bên cùng chiều cao (cân đối kể cả số lẻ)
-    // Tính trước ey (đầu nhánh) từng cái -> gán điểm xuất phát theo THỨ TỰ ey, tránh đường kẻ bắt chéo khi kéo/đổi thứ tự
-    let yy=cy-span/2; const eyArr=[];
-    list.forEach(a=>{ const bh=bandOf(a); const by=yy+bh/2; yy+=bh+gap; const off=(a.off&&typeof a.off.dy==='number')?a.off:{dy:0}; eyArr.push(by-labelH(a)/2+headH(a)-HEAD_GAP/2+(off.dy||0)); });
-    const syRank=[]; eyArr.map((e,i)=>i).sort((i,j)=>eyArr[i]-eyArr[j]).forEach((i,r)=>syRank[i]=r);
-    const spread=Math.min(centerH-34,centerH*0.86);
-    const syOf=r=>Math.round(R>1?cy-spread/2+r*(spread/(R-1)):cy);
+    const spread=Math.min(centerH-34,centerH*0.86); const syTop=cy-spread/2, syBot=cy+spread/2;
     let y=cy-span/2;
     list.forEach((a,idx)=>{
       const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+gap;
       const col=goalColor(a,idxOf(a));
       const sx=cx+side*(centerW/2-6);
-      const sy=syOf(syRank[idx]);
       const bnx=cx+side*bnxOff;                 // mép nhãn phía trong (nối với nhánh)
       const lh2=labelH(a);
       const foX=side>0?bnx:bnx-LW;              // góc trái foreignObject
@@ -1670,6 +1664,7 @@ function buildMindmap(areas){
       const lineY=Math.round(topY+headH(a)-HEAD_GAP/2); // đường kẻ ngay dưới tiêu đề (giống ảnh mẫu)
       const off=(a.off&&typeof a.off.dx==='number')?a.off:{dx:0,dy:0}; // vị trí kéo thủ công
       const ex=bnx+off.dx, ey=lineY+off.dy, midX=Math.round((sx+ex)/2);
+      const sy=Math.round(Math.max(syTop,Math.min(syBot,ey)));  // điểm xuất phát bám đúng độ cao đầu nhánh -> không bắt chéo
       // nhánh chính: đường cong mượt (điểm điều khiển ở trung điểm) — có id để cập nhật khi kéo cụm
       paths+=`<path id="mmp_${a.id}" d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ey}, ${ex} ${ey}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
