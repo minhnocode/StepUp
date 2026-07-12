@@ -442,7 +442,7 @@
   .mm-addkid{margin-left:6px;flex:none;width:26px;height:26px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:15px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center}
   .mm-addkid:hover{filter:brightness(1.15)}
   .mmwrap.locked .mm-addkid{display:none}
-  .mm-addkid2{margin-left:8px;flex:none;width:23px;height:23px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:13px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+  .mm-addkid2{margin-left:7px;flex:none;width:21px;height:21px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:12px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
   .mm-addkid2:hover{filter:brightness(1.15)}
   .mmwrap.locked .mm-addkid2{display:none}
   .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
@@ -456,7 +456,7 @@
   .mml-l{text-align:left}
   .mml-head{display:flex;align-items:center;gap:9px;margin-bottom:13px}
   .mml-ic{flex:none;font-size:27px;line-height:1}
-  .mml-t{flex:1;min-width:0;font:800 23px/1.14 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.4px}
+  .mml-t{flex:0 1 auto;min-width:0;font:800 22px/1.14 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px;white-space:nowrap}
   .mml-d{font:500 14px/1.4 var(--sans,system-ui);color:#585247;max-width:100%}
   .mml-y{font:700 14.5px/1.42 var(--sans,system-ui);max-width:100%}
   .mml:hover .mml-t{text-decoration:underline}
@@ -1546,7 +1546,7 @@ function initMindmapPanZoom(){
 // Mindmap kiểu XMind: nhánh cong nhiều màu; nhãn nhánh hiện đủ 🌟 mục tiêu cuộc đời + 🎯 mục tiêu năm (tự xuống dòng); "lá" = check-in gạch chân; thẻ đỏ ở giữa.
 function buildMindmap(areas){
   const PAD=60, leafH=34, centerW=214, centerH=196, GAP=64;
-  const LW=340;                 // bề rộng khối nhãn (đơn vị viewBox)
+  const LW=372;                 // bề rộng khối nhãn (đơn vị viewBox)
   const T_LH=27, B_LH=21;       // cao mỗi dòng tiêu đề / nội dung
   const HEAD_GAP=13;            // khoảng cách tiêu đề -> đường kẻ -> mô tả
   const CH_T=Math.floor((LW-46)/13), CH_B=Math.floor(LW/7.4); // ký tự / dòng (ước lượng; tiêu đề trừ chỗ icon)
@@ -1562,7 +1562,7 @@ function buildMindmap(areas){
   dTags.forEach(t=>{ const w=t.length*7.1+26; if(_rw+w>_maxW){dRows++;_rw=w;}else{_rw+=w+7;} });
   const dBodyH=dTags.length?(dRows*30+4):24;
   const dH=Math.round(32+dBodyH);
-  const headH=a=>Math.max(34,nlines(String(a.name||'(mục tiêu)').toUpperCase(),CH_T)*T_LH)+HEAD_GAP; // cao phần tiêu đề tới đường kẻ
+  const headH=a=>Math.max(34,T_LH)+HEAD_GAP; // tiêu đề 1 dòng (không xuống dòng) tới đường kẻ
   function labelH(a){
     const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
     let h=headH(a)+6;
