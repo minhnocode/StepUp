@@ -572,6 +572,11 @@
   .kb-addb{flex:none;background:var(--kc);color:#fff;border:none;border-radius:8px;width:34px;font-size:17px;font-weight:700;cursor:pointer}
   .kb-addcol{flex:0 0 210px;align-self:flex-start;background:rgba(255,255,255,.5);border:2px dashed var(--brass);border-radius:14px;padding:14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--brass)}
   .kb-addcol:hover{background:#fff}
+  /* Thành tựu + Biết ơn + nhật ký hôm nay (trong Mục tiêu) */
+  .ghl{margin-top:24px;display:grid;gap:16px}
+  @media(min-width:900px){.ghl{grid-template-columns:1fr 1fr}}
+  .gtoday{margin-top:22px;max-width:660px}
+  .gtoday-hint{font-size:12px;color:var(--ink-faint);margin-top:10px;text-align:right}
   /* danh sách đầy đủ các mục tiêu (thẻ nhiều màu) */
   .gcards{margin-top:26px;display:grid;grid-template-columns:1fr;gap:16px}
   @media(min-width:760px){.gcards{grid-template-columns:1fr 1fr}}
@@ -664,7 +669,8 @@
   <div class="topbar">
     <div class="brand">Nhật ký<span class="dot">.</span></div>
     <div class="seg">
-      <button id="segHome" class="on" onclick="setView('home')" title="Tổng quan">✨</button>
+      <button id="segGoals" class="on" onclick="setView('goals')" title="Mục tiêu">🎯 Mục tiêu</button>
+      <button id="segHome" onclick="setView('home')" title="Tổng quan">✨</button>
       <button id="segCal" onclick="setView('calendar')">Lịch</button>
       <button id="segDay" onclick="setView('day')">Ngày</button>
       <button id="segSearch" onclick="setView('search')">Tìm</button>
@@ -898,7 +904,7 @@ async function onSignedIn(){
   // reset sạch trạng thái trong bộ nhớ để KHÔNG lẫn dữ liệu người trước
   ENTRIES=[]; BYDATE={}; CONTACTS=[]; current=null; GOALS={areas:[]}; FIELDS=JSON.parse(JSON.stringify(DEFAULT_FIELDS));
   const who=$('acctLine'); if(who&&GUSER)who.textContent=GUSER.email||GUSER.name||'';
-  showApp(); setView('home'); loadAll();
+  showApp(); setView('goals'); loadAll();
 }
 /* ----- Xuất/mở dữ liệu dạng Google Sheet (dựng từ dữ liệu hiện tại) ----- */
 function csvEscape(s){ s=String(s==null?'':s); return /[",\n\r]/.test(s)?('"'+s.replace(/"/g,'""')+'"'):s; }
@@ -1159,6 +1165,7 @@ function knownPeople(){
 /* ---------- điều hướng view ---------- */
 function setView(v){
   view=v;
+  $('segGoals')&&$('segGoals').classList.toggle('on',v==='goals');
   $('segHome').classList.toggle('on',v==='home');
   $('segCal').classList.toggle('on',v==='calendar');
   $('segDay').classList.toggle('on',v==='day');
@@ -1293,30 +1300,30 @@ function renderHomeToday(){
   edGrowAll('homeToday');
 }
 
-/* ----- Nổi bật: thành tựu + biết ơn ----- */
-function renderHomeHighlights(){
-  // Thành tựu: theo tên -> các ngày
+/* ----- Nổi bật: thành tựu + biết ơn (dùng chung Home & Mục tiêu) ----- */
+function achSectionHTML(){
   const ach=[];
   FIELDS.forEach(f=>{if(f.type!=='checklist')return;(f.options||[]).forEach(opt=>{
     const days=ENTRIES.filter(e=>normCheck((e.data||{})[f.id]).done.indexOf(opt)>=0).map(e=>e.date).sort();
     if(days.length)ach.push({label:opt,dates:days});
   })});
-  $('homeAch').innerHTML='<div class="home-sec"><div class="home-sec-h">🏆 Thành tựu của bạn</div>'+(
+  return '<div class="home-sec"><div class="home-sec-h">🏆 Thành tựu của bạn</div>'+(
     ach.length?'<div class="hlist">'+ach.map(a=>`<div class="hrow"><span class="hrow-label">✓ ${escapeHtml(a.label)}</span><span class="chips">${a.dates.map((d,j)=>`<span class="daychip c${j%8}" onclick="openDayISO('${d}')">${d.slice(8,10)}/${d.slice(5,7)}</span>`).join('')}</span></div>`).join('')+'</div>'
-    :'<div class="home-empty">Chưa có thành tựu nào được đánh dấu.<br>Vào tab <b>Ngày</b> và tick việc bạn đã làm hôm nay nhé! 💪</div>'
+    :'<div class="home-empty">Chưa có thành tựu nào được đánh dấu.<br>Tick việc bạn đã làm ở ô nhật ký hôm nay bên dưới nhé! 💪</div>'
   )+'</div>';
-
-  // Biết ơn: theo người -> các điều
+}
+function gratSectionHTML(){
   const gmap={},order=[];
   ENTRIES.forEach(e=>FIELDS.forEach(f=>{if(f.type!=='gratitude')return;const v=(e.data||{})[f.id];if(!Array.isArray(v))return;
     v.forEach(g=>{if(!g)return;const isObj=typeof g==='object';const person=(isObj&&g.person?String(g.person).trim():'')||'(chưa gắn tên)';const text=isObj?(g.text||''):String(g);if(!gmap[person]){gmap[person]=[];order.push(person)}gmap[person].push({text,date:e.date})});
   }));
   const persons=order.sort((a,b)=>gmap[b].length-gmap[a].length);
-  $('homeGrat').innerHTML='<div class="home-sec"><div class="home-sec-h">🙏 Điều bạn biết ơn</div>'+(
+  return '<div class="home-sec"><div class="home-sec-h">🙏 Điều bạn biết ơn</div>'+(
     persons.length?'<div class="hlist">'+persons.map(p=>`<div class="hrow"><span class="hrow-label">🙏 ${escapeHtml(p)}</span><span class="chips">${gmap[p].map((it,j)=>`<span class="gchip c${j%8}" onclick="openDayISO('${it.date}')">${escapeHtml(it.text)||'(trống)'}<span class="gd">${it.date.slice(8,10)}/${it.date.slice(5,7)}</span></span>`).join('')}</span></div>`).join('')+'</div>'
     :'<div class="home-empty">Chưa có điều biết ơn nào.<br>Ghi lại một điều nhỏ bạn biết ơn hôm nay 🌿</div>'
   )+'</div>';
 }
+function renderHomeHighlights(){ $('homeAch').innerHTML=achSectionHTML(); $('homeGrat').innerHTML=gratSectionHTML(); }
 
 /* ---------- Tìm kiếm ---------- */
 function deacc(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d')}
@@ -1402,13 +1409,18 @@ function editGoalIcon(id){ const a=findArea(id); if(!a)return; const v=prompt('N
 const GTONES=['#2E7CD6','#E0473C','#2FA463','#7A5CD0','#E0913C','#159AA8','#C8478B','#5B8C2A'];
 function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
-  const mm = N ? buildMindmap(areas) : '';
-  const cards = N ? '<div class="gcards">'+areas.map((a,i)=>`<div class="gcard2" id="gc_${a.id}" style="--ac:${GTONES[i%GTONES.length]}"><button class="gdel2" title="Xoá mục tiêu" onclick="removeGoalArea('${a.id}')">🗑</button>${goalCardHTML(a)}</div>`).join('')+'</div>'
+  const mm = N ? buildMindmap(areas)
     : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
-  $('goalsList').innerHTML = mm + renderBoard() + cards;
-  document.querySelectorAll('#goalsView .garea').forEach(gGrow);
+  const highlights = '<div class="ghl">'+achSectionHTML()+gratSectionHTML()+'</div>';
+  // editor nhật ký hôm nay ở cuối
+  const e=BYDATE[todayISO()];
+  edCur=e?JSON.parse(JSON.stringify(e)):{id:'',date:todayISO(),data:{},images:[]};
+  const today='<div class="q-card gtoday"><div class="q-head">✍️ Nhật ký hôm nay · '+weekdayName(todayISO())+' '+fmtD(todayISO())+'</div>'+editorHTML(edCur,false)+'<div class="gtoday-hint">Tự động lưu khi bạn nhập.</div></div>';
+  $('fieldsHost').innerHTML=''; $('homeToday').innerHTML='';   // tránh trùng id editor
+  $('goalsList').innerHTML = mm + renderBoard() + highlights + today;
   if(N) initMindmapPanZoom();
   initBoardDnD();
+  edGrowAll('goalsList');
 }
 /* ===== Bảng kiểu Trello (dưới mindmap): cột · thẻ · kéo-thả ===== */
 function kbBoard(){ GOALS.board=GOALS.board||{cols:[]}; return GOALS.board; }
@@ -2204,7 +2216,7 @@ function copyHash(){const t=$('genHash').textContent;navigator.clipboard?navigat
 
 function showApp(){$('setupScreen').classList.add('hidden');$('lockScreen').classList.add('hidden');$('loginScreen')&&$('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden')}
 function startInit(){
-  if(CFG.url||store.get('journal_local')){showApp();setView('home');loadAll();}
+  if(CFG.url||store.get('journal_local')){showApp();setView('goals');loadAll();}
   else{$('setupScreen').classList.remove('hidden')}
 }
 (function boot(){
