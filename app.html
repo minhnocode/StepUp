@@ -398,8 +398,15 @@
   .mm-node-c{flex:none;background:var(--brass);color:#fff;font-size:11px;font-weight:700;border-radius:999px;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
   @media(max-width:520px){.mm{max-width:330px}}
   /* mindmap SVG kiểu XMind */
-  .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;overflow-x:auto;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px max(24px,4vw)}
-  .mmsvg{display:block;width:100%;height:auto;min-width:760px}
+  .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;height:74vh;min-height:460px;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+  .mmwrap.grabbing{cursor:grabbing}
+  .mmpan{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+  .mmsvg{display:block}
+  .mmzoom{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 6px;box-shadow:0 6px 18px rgba(0,0,0,.16);z-index:6}
+  .mmzoom button{width:32px;height:32px;border:none;background:none;font-size:19px;line-height:1;cursor:pointer;border-radius:50%;color:var(--ink)}
+  .mmzoom button:hover{background:var(--paper)}
+  .mmzoom span{font-size:12.5px;font-weight:700;min-width:44px;text-align:center;color:var(--ink-soft)}
+  .mmhint2{position:absolute;left:16px;bottom:18px;font-size:12px;color:var(--ink-faint);background:rgba(255,255,255,.6);padding:4px 10px;border-radius:999px;pointer-events:none}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
   .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;gap:4px;cursor:pointer;padding:0 4px}
   .mml>*{width:100%}
@@ -1270,6 +1277,23 @@ function renderGoals(){
     : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
   $('goalsList').innerHTML = mm + cards;
   document.querySelectorAll('#goalsView .garea').forEach(gGrow);
+  if(N) initMindmapPanZoom();
+}
+let MMV={x:0,y:0,s:1};
+function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`translate(${MMV.x}px,${MMV.y}px) scale(${MMV.s})`; const pct=$('mmPct'); if(pct)pct.textContent=Math.round(MMV.s*100)+'%'; }
+function mmFit(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; const s=Math.min(fw/W, fh/H)*0.94; MMV.s=s; MMV.x=(fw-W*s)/2; MMV.y=(fh-H*s)/2; mmApply(); }
+function mmZoomAt(cx,cy,f){ const ns=Math.max(.2,Math.min(3.5,MMV.s*f)); MMV.x=cx-(cx-MMV.x)*(ns/MMV.s); MMV.y=cy-(cy-MMV.y)*(ns/MMV.s); MMV.s=ns; mmApply(); }
+function mmZoom(dir){ const w=$('mmWrap'); if(!w)return; mmZoomAt(w.clientWidth/2, w.clientHeight/2, dir>0?1.2:1/1.2); }
+function initMindmapPanZoom(){
+  const w=$('mmWrap'); if(!w||w._pz)return; w._pz=1;
+  mmFit();
+  let drag=false,lx=0,ly=0,moved=0;
+  w.addEventListener('pointerdown',e=>{ if(e.target.closest&&e.target.closest('.mmzoom'))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
+  const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); if(moved>6){ w._sc=1; setTimeout(()=>{w._sc=0},60);} };
+  w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
+  w.addEventListener('click',e=>{ if(w._sc){ e.stopPropagation(); e.preventDefault(); } },true);
+  w.addEventListener('wheel',e=>{ e.preventDefault(); const r=w.getBoundingClientRect(); mmZoomAt(e.clientX-r.left,e.clientY-r.top, e.deltaY<0?1.12:1/1.12); },{passive:false});
 }
 // Mindmap kiểu XMind: nhánh cong nhiều màu; nhãn nhánh hiện đủ 🌟 mục tiêu cuộc đời + 🎯 mục tiêu năm (tự xuống dòng); "lá" = check-in gạch chân; thẻ đỏ ở giữa.
 function buildMindmap(areas){
@@ -1341,7 +1365,16 @@ function buildMindmap(areas){
   const fo=`<foreignObject x="${cx-centerW/2}" y="${cy-centerH/2}" width="${centerW}" height="${centerH}">`+
     `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div></div>`+
     `</foreignObject>`;
-  return `<div class="mmwrap"><svg class="mmsvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${paths}${subs}${labels}${leaves}${fo}</svg></div>`;
+  return `<div class="mmwrap" id="mmWrap" data-w="${W}" data-h="${H}">`+
+      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}</svg></div>`+
+      `<div class="mmzoom">`+
+        `<button onclick="mmZoom(-1)" title="Thu nhỏ">−</button>`+
+        `<span id="mmPct">100%</span>`+
+        `<button onclick="mmZoom(1)" title="Phóng to">+</button>`+
+        `<button onclick="mmFit()" title="Vừa khung">⤢</button>`+
+      `</div>`+
+      `<div class="mmhint2">Kéo để di chuyển · lăn chuột / nút +− để phóng to</div>`+
+    `</div>`;
 }
 function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('gc-flash');setTimeout(()=>el.classList.remove('gc-flash'),1000);} }
 function showGoalPosts(id){
