@@ -496,7 +496,13 @@
   .gname-row .gname{flex:1;margin:0}
   .gicon{flex:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .gicon:hover{border-color:var(--brass);background:var(--paper)}
-  .mmc{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(158deg,#E7473C 0%,#C8382F 100%);border:3px solid #fff;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;cursor:pointer;padding:14px 16px;box-shadow:0 12px 30px rgba(200,56,49,.35)}
+  .mmc{position:relative;width:100%;height:100%;box-sizing:border-box;background:linear-gradient(158deg,#E7473C 0%,#C8382F 100%);border:3px solid #fff;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;cursor:pointer;padding:14px 16px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+  .mmc-color{position:absolute;top:9px;right:9px;width:27px;height:27px;border-radius:50%;border:2px solid rgba(255,255,255,.75);background:rgba(255,255,255,.22);color:#fff;font-size:13px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2}
+  .mmc-color:hover{background:rgba(255,255,255,.4)}
+  .mmwrap.locked .mmc-color{display:none}
+  .mm-color{margin-left:6px;flex:none;width:20px;height:20px;border-radius:50%;border:2px solid #fff;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.25);padding:0}
+  .mm-color:hover{transform:scale(1.12)}
+  .mmwrap.locked .mm-color{display:none}
   .mmc-av{width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
   .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:30px;font-weight:700;color:#E7473C}
   .mmc-name{font-family:var(--serif);font-weight:700;font-size:19px;text-align:center;line-height:1.2;word-break:break-word}
@@ -1578,7 +1584,7 @@ function initMindmapPanZoom(){
   w.querySelectorAll('.mmbranch').forEach(g=>{
     g.addEventListener('pointerdown',e=>{
       if(MMLOCK)return; // khoá thì không kéo cụm (click vẫn cuộn tới thẻ)
-      if(e.target.closest&&(e.target.closest('.mml-num')||e.target.closest('.mm-addkid2')))return; // bấm badge / nút thêm nhánh con thì không kéo
+      if(e.target.closest&&(e.target.closest('.mml-num')||e.target.closest('.mm-addkid2')||e.target.closest('.mm-color')))return; // bấm badge / thêm nhánh con / đổi màu thì không kéo
       e.stopPropagation(); e.preventDefault();
       const id=g.dataset.id, sx=+g.dataset.sx, sy=+g.dataset.sy, bx=+g.dataset.bx, lyv=+g.dataset.lyv;
       const path=$('mmp_'+id);
@@ -1640,11 +1646,13 @@ function buildMindmap(areas){
   const lTot=Lt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Lt.length?GAP:0);
   const H=Math.round(Math.max(rTot,lTot,centerH,420)+PAD*2), cy=Math.round(H/2);
   let paths='',subs='',labels='',leaves='';
-  function place(list,side){
-    const tot=list.reduce((s,a)=>s+bandOf(a)+GAP,0)-(list.length?GAP:0);
-    let y=cy-tot/2; const R=list.length;
+  function place(list,side,span){
+    const R=list.length; if(!R)return;
+    const bandsSum=list.reduce((s,a)=>s+bandOf(a),0);
+    const gap=R>1?(span-bandsSum)/(R-1):0;   // trải đều 2 bên cùng chiều cao (cân đối kể cả số lẻ)
+    let y=cy-span/2;
     list.forEach((a,idx)=>{
-      const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+GAP;
+      const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+gap;
       const col=goalColor(a,idxOf(a));
       const sx=cx+side*(centerW/2-6);
       // điểm xuất phát trải đều dọc mép thẻ theo thứ tự trên->dưới (tránh chụm & chồng nhánh)
@@ -1664,7 +1672,7 @@ function buildMindmap(areas){
       const dr=String(a.dream||''), yr=yrOf(a), prog=goalProgress(a.id), cnt=prog.total, doneN=prog.done.length;
       const badge=`<span class="mml-num${(cnt&&doneN===cnt)?' full':''}" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Đã làm ${doneN}/${cnt}">${doneN}/${cnt}</span>`;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="mmBranchClick('${a.id}')">`+
-        `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span><button class="mm-addkid2" style="background:${col}" title="Thêm nhánh con" onclick="event.stopPropagation();mmAddChild('${a.id}')">＋</button></div>`+
+        `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span><button class="mm-addkid2" style="background:${col}" title="Thêm nhánh con" onclick="event.stopPropagation();mmAddChild('${a.id}')">＋</button><button class="mm-color" style="background:${col}" title="Đổi màu nhánh" onclick="event.stopPropagation();goalColorPick('${a.id}')"></button></div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
         ((yr||cnt)?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)} ${badge}</div>`:'')+
         `</div>`;
@@ -1690,14 +1698,16 @@ function buildMindmap(areas){
         `</g>`;
     });
   }
-  place(Rt,1); place(Lt,-1);
+  const span=Math.max(rTot,lTot,centerH); place(Rt,1,span); place(Lt,-1,span);
   const av=goalAvatar();
   const avHtml=av?`<img src="${av}" referrerpolicy="no-referrer" class="mmc-av"/>`:`<div class="mmc-av mmc-ph">${escapeHtml((goalCenterTitle().trim()[0]||'?').toUpperCase())}</div>`;
   const tagsHtml=dTags.length
     ? `<div class="mmc-tags" onclick="event.stopPropagation();editCenterDesc()" title="Sửa mô tả">`+dTags.map((t,i)=>`<span class="mmc-tag" style="background:${GTONES[i%GTONES.length]}">${escapeHtml(t)}</span>`).join('')+`</div>`
     : `<button class="mmc-adddesc" onclick="event.stopPropagation();editCenterDesc()">＋ mô tả bạn là ai</button>`;
+  const cc=GOALS.centerColor||'#E4453B';
+  const ccStyle=`background:linear-gradient(158deg, ${cc} 0%, color-mix(in srgb, ${cc} 74%, #000) 100%)`;
   const fo=`<foreignObject x="${cx-centerW/2}" y="${cy-centerH/2}" width="${centerW}" height="${centerH}">`+
-    `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div>${tagsHtml}</div>`+
+    `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" style="${ccStyle}" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div>${tagsHtml}<button class="mmc-color" title="Đổi màu thẻ giữa" onclick="event.stopPropagation();centerColorPick()">🎨</button></div>`+
     `</foreignObject>`;
   return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
       `<button class="mmadd" onclick="addGoalArea()">＋ Thêm nhánh</button>`+
@@ -1793,6 +1803,11 @@ function kbColorPick(colId){ const c=kbCol(colId); if(!c)return; const cur=(c.co
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
 }
 function kbSetColor(colId,c){ const col=kbCol(colId); if(!col)return; col.color=c; persistGoals(); closeGoalPosts(); renderGoals(); }
+function pkOverlay(title,swatches){ const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:360px"><div class="gp-head"><span>${title}</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body" style="padding:16px"><div class="pk-grid">${swatches}</div></div></div></div>`; let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html; }
+function goalColorPick(id){ const a=findArea(id); if(!a)return; const cur=goalColor(a).toLowerCase(); pkOverlay('🎨 Màu "'+escapeHtml(a.name||'mục tiêu')+'"', PALETTE.map(x=>`<button class="pk-sw${cur===x.toLowerCase()?' on':''}" style="background:${x}" title="${x}" onclick="setGoalColorMap('${id}','${x}')"></button>`).join('')); }
+function setGoalColorMap(id,x){ const a=findArea(id); if(!a)return; a.color=x; persistGoals(); closeGoalPosts(); renderGoals(); }
+function centerColorPick(){ const cur=(GOALS.centerColor||'#E4453B').toLowerCase(); pkOverlay('🎨 Màu thẻ trung tâm', PALETTE.map(x=>`<button class="pk-sw${cur===x.toLowerCase()?' on':''}" style="background:${x}" title="${x}" onclick="setCenterColor('${x}')"></button>`).join('')); }
+function setCenterColor(x){ GOALS.centerColor=x; persistGoals(); closeGoalPosts(); renderGoals(); }
 // Thêm nhánh con ngay trên mindmap (nút ＋ cạnh pill, hiện khi mở khoá)
 function mmAddChild(id){ const a=findArea(id); if(!a)return; const t=prompt('Tên nhánh con:'); if(t==null)return; const v=(t||'').trim(); if(!v)return; a.children=a.children||[]; a.children.push({id:goalUid(),name:v}); persistGoals(); renderGoals(); }
 function mmEditChild(pid,kid){
