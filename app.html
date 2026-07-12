@@ -458,6 +458,9 @@
   .mm-addkid2{margin-left:7px;flex:none;width:21px;height:21px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:12px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
   .mm-addkid2:hover{filter:brightness(1.15)}
   .mmwrap.locked .mm-addkid2{display:none}
+  .mm-anchor{stroke:#fff;stroke-width:2.5;cursor:grab;display:none}
+  .mm-anchor:hover{stroke:var(--ink)}
+  .mmwrap:not(.locked) .mm-anchor{display:inline}
   .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
   .mm-child:hover{text-decoration:underline}
   .mm-childedit{font-size:13px;fill:#9a9a9a;cursor:pointer}
@@ -1575,7 +1578,7 @@ function initMindmapPanZoom(){
   if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmRecenter(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
-  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmadd')||e.target.closest('.mmbranch')||e.target.closest('.mmpill-w')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmadd')||e.target.closest('.mmbranch')||e.target.closest('.mmpill-w')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; if(e.target.classList&&e.target.classList.contains('mm-anchor'))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
   w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
   const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); };
   w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
@@ -1601,7 +1604,21 @@ function initMindmapPanZoom(){
     // Bấm đúp để trả cụm về vị trí tự động
     g.addEventListener('dblclick',e=>{ e.stopPropagation(); const a=findArea(g.dataset.id); if(a&&a.off){ delete a.off; persistGoals(); renderGoals(); } });
   });
+  // Kéo "nút nối" (chân nhánh) tới vị trí khác
+  w.querySelectorAll('.mm-anchor').forEach(h=>{
+    h.addEventListener('pointerdown',e=>{
+      if(MMLOCK)return; e.stopPropagation(); e.preventDefault();
+      const id=h.dataset.id, ex=+h.dataset.ex, ey=+h.dataset.ey; const path=$('mmp_'+id);
+      let px=e.clientX, py=e.clientY, cxv=+h.getAttribute('cx'), cyv=+h.getAttribute('cy');
+      const move=ev=>{ ev.preventDefault(); cxv+=(ev.clientX-px)/MMV.s; cyv+=(ev.clientY-py)/MMV.s; px=ev.clientX; py=ev.clientY;
+        h.setAttribute('cx',Math.round(cxv)); h.setAttribute('cy',Math.round(cyv));
+        if(path){ const mid=Math.round((cxv+ex)/2); path.setAttribute('d',`M ${Math.round(cxv)} ${Math.round(cyv)} C ${mid} ${Math.round(cyv)}, ${mid} ${ey}, ${ex} ${ey}`);} };
+      const done=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',done); window.removeEventListener('pointercancel',done); const a=findArea(id); if(a){ a.anchor={x:Math.round(cxv),y:Math.round(cyv)}; persistGoals(); } };
+      window.addEventListener('pointermove',move); window.addEventListener('pointerup',done); window.addEventListener('pointercancel',done);
+    });
+  });
 }
+function mmResetAnchor(id){ const a=findArea(id); if(!a)return; if(a.anchor){ delete a.anchor; persistGoals(); renderGoals(); } }
 // Mindmap kiểu XMind: nhánh cong nhiều màu; nhãn nhánh hiện đủ 🌟 mục tiêu cuộc đời + 🎯 mục tiêu năm (tự xuống dòng); "lá" = check-in gạch chân; thẻ đỏ ở giữa.
 function buildMindmap(areas){
   const PAD=60, leafH=34, GAP=64;
@@ -1645,7 +1662,7 @@ function buildMindmap(areas){
   const rTot=Rt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Rt.length?GAP:0);
   const lTot=Lt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Lt.length?GAP:0);
   const H=Math.round(Math.max(rTot,lTot,centerH,420)+PAD*2), cy=Math.round(H/2);
-  let paths='',subs='',labels='',leaves='';
+  let paths='',subs='',labels='',leaves='',anchors='';
   function place(list,side,span){
     const R=list.length; if(!R)return;
     const bandsSum=list.reduce((s,a)=>s+bandOf(a),0);
@@ -1655,7 +1672,6 @@ function buildMindmap(areas){
     list.forEach((a,idx)=>{
       const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+gap;
       const col=goalColor(a,idxOf(a));
-      const sx=cx+side*(centerW/2-6);
       const bnx=cx+side*bnxOff;                 // mép nhãn phía trong (nối với nhánh)
       const lh2=labelH(a);
       const foX=side>0?bnx:bnx-LW;              // góc trái foreignObject
@@ -1663,8 +1679,13 @@ function buildMindmap(areas){
       const topY=by-lh2/2;                      // đỉnh khối nhãn
       const lineY=Math.round(topY+headH(a)-HEAD_GAP/2); // đường kẻ ngay dưới tiêu đề (giống ảnh mẫu)
       const off=(a.off&&typeof a.off.dx==='number')?a.off:{dx:0,dy:0}; // vị trí kéo thủ công
-      const ex=bnx+off.dx, ey=lineY+off.dy, midX=Math.round((sx+ex)/2);
-      const sy=Math.round(Math.max(syTop,Math.min(syBot,ey)));  // điểm xuất phát bám đúng độ cao đầu nhánh -> không bắt chéo
+      const ex=bnx+off.dx, ey=lineY+off.dy;
+      // điểm nối (chân nhánh) — có thể kéo tuỳ ý; nếu chưa kéo thì bám đúng độ cao đầu nhánh (không bắt chéo)
+      const anc=(a.anchor&&typeof a.anchor.y==='number')?a.anchor:null;
+      const sx=(anc&&typeof anc.x==='number')?anc.x:(cx+side*(centerW/2-6));
+      const sy=anc?anc.y:Math.round(Math.max(syTop,Math.min(syBot,ey)));
+      const midX=Math.round((sx+ex)/2);
+      anchors+=`<circle class="mm-anchor" data-id="${a.id}" data-ex="${ex}" data-ey="${ey}" cx="${sx}" cy="${sy}" r="8" style="fill:${col}" ondblclick="mmResetAnchor('${a.id}')"><title>Kéo để đổi điểm nối · bấm đúp = về mặc định</title></circle>`;
       // nhánh chính: đường cong mượt (điểm điều khiển ở trung điểm) — có id để cập nhật khi kéo cụm
       paths+=`<path id="mmp_${a.id}" d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ey}, ${ex} ${ey}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
@@ -1710,7 +1731,7 @@ function buildMindmap(areas){
     `</foreignObject>`;
   return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
       `<button class="mmadd" onclick="addGoalArea()">＋ Thêm nhánh</button>`+
-      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}</svg></div>`+
+      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}${anchors}</svg></div>`+
       `<div class="mmzoom${MMLOCK?' locked':''}" id="mmZoomBar">`+
         `<button class="mmlock" onclick="mmToggleLock()" title="Khoá / mở di chuyển">${MMLOCK?'🔒':'🔓'}</button>`+
         `<span class="mmzsep"></span>`+
