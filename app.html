@@ -401,15 +401,15 @@
   .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;overflow-x:auto;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px max(24px,4vw)}
   .mmsvg{display:block;width:100%;height:auto;min-width:760px}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
-  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:4px;cursor:pointer;padding:0 4px}
+  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;gap:4px;cursor:pointer;padding:0 4px}
   .mml>*{width:100%}
   .mml-r{text-align:left}
   .mml-l{text-align:left}
-  .mml-head{display:flex;align-items:center;gap:9px}
+  .mml-head{display:flex;align-items:center;gap:9px;margin-bottom:13px}
   .mml-ic{flex:none;font-size:27px;line-height:1}
   .mml-t{flex:1;min-width:0;font:800 23px/1.14 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.4px}
-  .mml-d{font:500 15px/1.45 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
-  .mml-y{font:700 15px/1.45 var(--sans,system-ui);max-width:100%}
+  .mml-d{font:500 14px/1.4 var(--sans,system-ui);color:#585247;max-width:100%}
+  .mml-y{font:700 14.5px/1.42 var(--sans,system-ui);max-width:100%}
   .mml:hover .mml-t{text-decoration:underline}
   .mml-num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;color:#fff;font:800 13px/1 var(--sans,system-ui);vertical-align:2px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
   .mml-num:hover{filter:brightness(1.1)}
@@ -1273,20 +1273,22 @@ function renderGoals(){
 }
 // Mindmap kiểu XMind: nhánh cong nhiều màu; nhãn nhánh hiện đủ 🌟 mục tiêu cuộc đời + 🎯 mục tiêu năm (tự xuống dòng); "lá" = check-in gạch chân; thẻ đỏ ở giữa.
 function buildMindmap(areas){
-  const PAD=56, leafH=34, centerW=214, centerH=196, GAP=48;
+  const PAD=60, leafH=34, centerW=214, centerH=196, GAP=64;
   const LW=340;                 // bề rộng khối nhãn (đơn vị viewBox)
   const T_LH=27, B_LH=21;       // cao mỗi dòng tiêu đề / nội dung
+  const HEAD_GAP=13;            // khoảng cách tiêu đề -> đường kẻ -> mô tả
   const CH_T=Math.floor((LW-46)/13), CH_B=Math.floor(LW/7.4); // ký tự / dòng (ước lượng; tiêu đề trừ chỗ icon)
   const idxOf=a=>areas.indexOf(a);
   const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
   const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
+  const headH=a=>Math.max(34,nlines(String(a.name||'(mục tiêu)').toUpperCase(),CH_T)*T_LH)+HEAD_GAP; // cao phần tiêu đề tới đường kẻ
   function labelH(a){
-    const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
-    let h=Math.max(38,nlines(nm.toUpperCase(),CH_T)*T_LH)+6;
+    const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
+    let h=headH(a)+6;
     if(dr) h+=nlines('🌟 '+dr,CH_B)*B_LH+8;
     if(yr||cnt) h+=nlines('🎯 '+GYEAR()+':  '+yr,CH_B)*B_LH+8;
-    return Math.max(h+12,110);
+    return Math.max(h+10,96);
   }
   const bandOf=a=>labelH(a);
   const bnxOff=150;
@@ -1312,11 +1314,13 @@ function buildMindmap(areas){
       const bnx=cx+side*bnxOff;                 // mép nhãn phía trong (nối với nhánh)
       const lh2=labelH(a);
       const foX=side>0?bnx:bnx-LW;              // góc trái foreignObject
-      const outX=side>0?bnx+LW:bnx-LW;          // mép ngoài nhãn (nơi lá toả ra)
-      // nhánh chính: từ thẻ giữa -> mép trong nhãn
-      paths+=`<path d="M ${sx} ${sy} C ${sx+side*72} ${sy}, ${bnx-side*72} ${by}, ${bnx} ${by}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`;
-      // gạch nền dưới nhãn cho giống XMind
-      paths+=`<line x1="${bnx}" y1="${by+lh2/2-2}" x2="${outX}" y2="${by+lh2/2-2}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
+      const outX=side>0?bnx+LW:bnx-LW;          // mép ngoài nhãn
+      const topY=by-lh2/2;                      // đỉnh khối nhãn
+      const lineY=Math.round(topY+headH(a)-HEAD_GAP/2); // đường kẻ ngay dưới tiêu đề (giống ảnh mẫu)
+      // nhánh chính: từ thẻ giữa -> nối vào ĐƯỜNG KẺ dưới tiêu đề
+      paths+=`<path d="M ${sx} ${sy} C ${sx+side*80} ${sy}, ${bnx-side*80} ${lineY}, ${bnx} ${lineY}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`;
+      // đường kẻ chạy dưới tiêu đề
+      paths+=`<line x1="${bnx}" y1="${lineY}" x2="${outX}" y2="${lineY}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
       const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
       const badge=`<span class="mml-num" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem ${cnt} post link vào">${cnt}</span>`;
