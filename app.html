@@ -400,8 +400,8 @@
   /* mindmap SVG kiểu XMind */
   .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;height:74vh;min-height:460px;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
   .mmwrap.grabbing{cursor:grabbing}
-  .mmpan{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
-  .mmsvg{display:block}
+  .mmpan{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;overflow:visible}
+  .mmsvg{display:block;overflow:visible}
   .mmzoom{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 6px;box-shadow:0 6px 18px rgba(0,0,0,.16);z-index:6}
   .mmzoom button{width:32px;height:32px;border:none;background:none;font-size:19px;line-height:1;cursor:pointer;border-radius:50%;color:var(--ink)}
   .mmzoom button:hover{background:var(--paper)}
