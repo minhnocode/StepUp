@@ -461,6 +461,9 @@
   .mm-anchor{stroke:#fff;stroke-width:2.5;cursor:grab;display:none}
   .mm-anchor:hover{stroke:var(--ink)}
   .mmwrap:not(.locked) .mm-anchor{display:inline}
+  .mm-snap{fill:#fff;stroke:var(--brass);stroke-width:2;stroke-dasharray:3 3;opacity:.5;pointer-events:none;display:none}
+  .mmwrap:not(.locked) .mm-snap{display:inline}
+  .mm-snap.hot{stroke:var(--ink);stroke-width:3;opacity:1;fill:#fff5d8;stroke-dasharray:none;r:9}
   .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
   .mm-child:hover{text-decoration:underline}
   .mm-childedit{font-size:13px;fill:#9a9a9a;cursor:pointer}
@@ -1610,10 +1613,18 @@ function initMindmapPanZoom(){
       if(MMLOCK)return; e.stopPropagation(); e.preventDefault();
       const id=h.dataset.id, ex=+h.dataset.ex, ey=+h.dataset.ey; const path=$('mmp_'+id);
       let px=e.clientX, py=e.clientY, cxv=+h.getAttribute('cx'), cyv=+h.getAttribute('cy');
+      const snapEls=Array.prototype.slice.call(document.querySelectorAll('.mm-snap'));
       const move=ev=>{ ev.preventDefault(); cxv+=(ev.clientX-px)/MMV.s; cyv+=(ev.clientY-py)/MMV.s; px=ev.clientX; py=ev.clientY;
-        h.setAttribute('cx',Math.round(cxv)); h.setAttribute('cy',Math.round(cyv));
-        if(path){ path.setAttribute('d',mmCurve(cxv,cyv,ex,ey)); } };
-      const done=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',done); window.removeEventListener('pointercancel',done); const a=findArea(id); if(a){ a.anchor={x:Math.round(cxv),y:Math.round(cyv)}; persistGoals(); } };
+        // hít vào điểm neo gần nhất trong ngưỡng
+        let best=null,bd=1e9; snapEls.forEach(sp=>{ const d=Math.hypot(cxv-(+sp.dataset.x),cyv-(+sp.dataset.y)); if(d<bd){bd=d;best=sp;} });
+        snapEls.forEach(sp=>sp.classList.remove('hot'));
+        let ax=cxv, ay=cyv; const th=30/MMV.s;
+        if(best && bd<th){ best.classList.add('hot'); ax=+best.dataset.x; ay=+best.dataset.y; h._snap={x:ax,y:ay}; } else h._snap=null;
+        h.setAttribute('cx',Math.round(ax)); h.setAttribute('cy',Math.round(ay));
+        if(path){ path.setAttribute('d',mmCurve(ax,ay,ex,ey)); } };
+      const done=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',done); window.removeEventListener('pointercancel',done);
+        snapEls.forEach(sp=>sp.classList.remove('hot'));
+        const t=h._snap||{x:Math.round(cxv),y:Math.round(cyv)}; const a=findArea(id); if(a){ a.anchor={x:Math.round(t.x),y:Math.round(t.y)}; persistGoals(); } };
       window.addEventListener('pointermove',move); window.addEventListener('pointerup',done); window.addEventListener('pointercancel',done);
     });
   });
@@ -1731,9 +1742,16 @@ function buildMindmap(areas){
   const fo=`<foreignObject x="${cx-centerW/2}" y="${cy-centerH/2}" width="${centerW}" height="${centerH}">`+
     `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" style="${ccStyle}" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div>${tagsHtml}<button class="mmc-color" title="Đổi màu thẻ giữa" onclick="event.stopPropagation();centerColorPick()">🎨</button></div>`+
     `</foreignObject>`;
+  // Điểm neo (snap) quanh thẻ giữa — kéo nút nối lại gần là tự hít vào
+  let snapMk=''; const fxS=cx-centerW/2, fyS=cy-centerH/2;
+  const snaps=[];
+  [0.16,0.38,0.62,0.84].forEach(t=>{ snaps.push([fxS, Math.round(fyS+centerH*t)]); snaps.push([fxS+centerW, Math.round(fyS+centerH*t)]); });
+  [0.28,0.5,0.72].forEach(t=>{ snaps.push([Math.round(fxS+centerW*t), fyS]); snaps.push([Math.round(fxS+centerW*t), fyS+centerH]); });
+  snaps.push([fxS,fyS],[fxS+centerW,fyS],[fxS,fyS+centerH],[fxS+centerW,fyS+centerH]);
+  snaps.forEach(s=>{ snapMk+=`<circle class="mm-snap" data-x="${s[0]}" data-y="${s[1]}" cx="${s[0]}" cy="${s[1]}" r="7"/>`; });
   return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
       `<button class="mmadd" onclick="addGoalArea()">＋ Thêm nhánh</button>`+
-      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}${anchors}</svg></div>`+
+      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}${snapMk}${anchors}</svg></div>`+
       `<div class="mmzoom${MMLOCK?' locked':''}" id="mmZoomBar">`+
         `<button class="mmlock" onclick="mmToggleLock()" title="Khoá / mở di chuyển">${MMLOCK?'🔒':'🔓'}</button>`+
         `<span class="mmzsep"></span>`+
