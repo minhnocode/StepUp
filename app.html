@@ -452,6 +452,15 @@
   .mmc-av{width:74px;height:74px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
   .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:32px;font-weight:700;color:#E7473C}
   .mmc-name{font-family:var(--serif);font-weight:700;font-size:19px;text-align:center;line-height:1.25;word-break:break-word}
+  /* panel Mô tả Minh dưới thẻ giữa */
+  .mmdesc{box-sizing:border-box;height:100%;background:linear-gradient(158deg,#FFF4D9 0%,#FBE7BE 100%);border:2px solid var(--brass);border-radius:16px;padding:9px 15px;cursor:pointer;box-shadow:0 10px 26px rgba(182,138,63,.28);overflow:hidden}
+  .mmdesc:hover{border-color:var(--brass-bright,#C79A3A)}
+  .mmdesc-h{font-family:var(--serif);font-weight:700;font-size:14px;color:#9a6a12;margin-bottom:5px}
+  .mmdesc-list{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:2px}
+  .mmdesc-list li{font-size:12.5px;line-height:1.4;color:#5a4a25}
+  .mmdesc-ph{font-size:12.5px;color:#a08a5e;font-style:italic}
+  .md-ta{width:100%;min-height:190px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.65;font-family:inherit;color:inherit;outline:none;resize:vertical}
+  .md-ta:focus{border-color:var(--brass)}
   .mm-hint2{text-align:center;color:var(--ink-faint);font-size:12px;margin:6px 0 2px}
   /* Bảng kiểu Trello (dưới mindmap) — full width, nhiều màu */
   .kb-wrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:18px;margin-bottom:6px;padding:16px max(24px,4vw) 10px;background:linear-gradient(180deg,#FBF4E2 0%,#FAF6EC 100%);border-top:1px solid var(--line)}
@@ -1474,7 +1483,7 @@ function initMindmapPanZoom(){
   if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmRecenter(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
-  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
   w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
   const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); };
   w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
@@ -1512,6 +1521,12 @@ function buildMindmap(areas){
   const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
   const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
+  // Panel "Mô tả Minh" dưới thẻ giữa
+  const desc=String(GOALS.desc||'');
+  const dLines=desc?desc.split('\n').map(s=>s.trim()).filter(Boolean):[];
+  const DW=320, D_CPL=42;
+  const dBodyH=dLines.length?(dLines.reduce((s,l)=>s+Math.max(1,Math.ceil(l.length/D_CPL)),0)*19+8):26;
+  const dH=Math.round(32+dBodyH);
   const headH=a=>Math.max(34,nlines(String(a.name||'(mục tiêu)').toUpperCase(),CH_T)*T_LH)+HEAD_GAP; // cao phần tiêu đề tới đường kẻ
   function labelH(a){
     const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
@@ -1531,7 +1546,7 @@ function buildMindmap(areas){
   const cx=Math.round(Lextent+PAD), W=Math.round(cx+Rextent+PAD);
   const rTot=Rt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Rt.length?GAP:0);
   const lTot=Lt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Lt.length?GAP:0);
-  const H=Math.round(Math.max(rTot,lTot,centerH,420)+PAD*2), cy=Math.round(H/2);
+  const H=Math.round(Math.max(rTot,lTot,centerH,420,centerH+2*(dH+26))+PAD*2), cy=Math.round(H/2);
   let paths='',subs='',labels='',leaves='';
   function place(list,side){
     const tot=list.reduce((s,a)=>s+bandOf(a)+GAP,0)-(list.length?GAP:0);
@@ -1574,8 +1589,14 @@ function buildMindmap(areas){
   const fo=`<foreignObject x="${cx-centerW/2}" y="${cy-centerH/2}" width="${centerW}" height="${centerH}">`+
     `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div></div>`+
     `</foreignObject>`;
+  const descInner=dLines.length
+    ? '<ul class="mmdesc-list">'+dLines.map(l=>`<li>${escapeHtml(l)}</li>`).join('')+'</ul>'
+    : '<div class="mmdesc-ph">Bấm để nhập mô tả bạn là ai… (mỗi dòng 1 ý)</div>';
+  const dfo=`<foreignObject x="${Math.round(cx-DW/2)}" y="${Math.round(cy+centerH/2+18)}" width="${DW}" height="${dH}" style="overflow:visible">`+
+    `<div xmlns="http://www.w3.org/1999/xhtml" class="mmdesc" onclick="editCenterDesc()" title="Sửa mô tả"><div class="mmdesc-h">📝 Mô tả Minh</div>${descInner}</div>`+
+    `</foreignObject>`;
   return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
-      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}</svg></div>`+
+      `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}${dfo}</svg></div>`+
       `<div class="mmzoom${MMLOCK?' locked':''}" id="mmZoomBar">`+
         `<button class="mmlock" onclick="mmToggleLock()" title="Khoá / mở di chuyển">${MMLOCK?'🔒':'🔓'}</button>`+
         `<span class="mmzsep"></span>`+
@@ -1608,6 +1629,13 @@ function showGoalPosts(id){
 function closeGoalPosts(){ const el=$('gpOverlay'); if(el)el.innerHTML=''; }
 function unlinkGoalPost(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoals(); showGoalPosts(aid); }
 function editCenterTitle(){ const cur=goalCenterTitle(); const v=prompt('Đặt tên ở giữa (tên bạn / tên hành trình):', cur); if(v==null)return; GOALS.title=(v||'').trim(); persistGoals(); renderGoals(); }
+function editCenterDesc(){
+  const cur=String(GOALS.desc||'');
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:500px"><div class="gp-head"><span>📝 Mô tả Minh — mỗi dòng 1 ý</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body" style="padding:14px"><textarea id="mmDescTa" class="md-ta" placeholder="Bạn là ai? Mỗi dòng một ý…&#10;Ví dụ:&#10;Là người biết sống&#10;Là người chính trực&#10;Sống khoa học, cân bằng">${escapeHtml(cur)}</textarea><div style="text-align:right;margin-top:10px"><button class="gbtn" onclick="saveCenterDesc()">Lưu</button></div></div></div></div>`;
+  let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
+  setTimeout(()=>{const t=$('mmDescTa'); if(t)t.focus();},30);
+}
+function saveCenterDesc(){ const t=$('mmDescTa'); GOALS.desc=(t?t.value:'').replace(/\n{3,}/g,'\n\n').trim(); persistGoals(); closeGoalPosts(); renderGoals(); }
 function goalCardHTML(a){
   const yr=GYEAR(); const yg=(a.year&&a.year[yr])||'';
   const cks=(a.checkins||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)));
