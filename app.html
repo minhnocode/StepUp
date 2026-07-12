@@ -1566,7 +1566,9 @@ function kbMoveCard(fromCol,cardId,toCol,index){ const fc=kbCol(fromCol), tc=kbC
 function kbMoveCol(fromId,toId,before){ const cols=kbBoard().cols; const fi=cols.findIndex(c=>c.id===fromId); if(fi<0)return; const col=cols.splice(fi,1)[0]; let ti=cols.findIndex(c=>c.id===toId); if(ti<0){cols.push(col);} else {cols.splice(before?ti:ti+1,0,col);} persistGoals(); renderGoals(); }
 let MMV={x:0,y:0,s:1};
 let MMLOCK=(store.get('mm_lock')!=='0'); // mặc định khoá
-function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`translate(${MMV.x}px,${MMV.y}px) scale(${MMV.s})`; const pct=$('mmPct'); if(pct)pct.textContent=Math.round(MMV.s*100)+'%'; }
+let _mmSaveT=null;
+function mmSaveView(){ if(_mmSaveT)clearTimeout(_mmSaveT); _mmSaveT=setTimeout(function(){ try{store.set('mm_view',JSON.stringify({x:Math.round(MMV.x),y:Math.round(MMV.y),s:+MMV.s.toFixed(4)}))}catch(_){} },200); }
+function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`translate(${MMV.x}px,${MMV.y}px) scale(${MMV.s})`; const pct=$('mmPct'); if(pct)pct.textContent=Math.round(MMV.s*100)+'%'; mmSaveView(); }
 function mmFit(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; const s=Math.min(fw/W, fh/H)*0.94; MMV.s=s; MMV.x=(fw-W*s)/2; MMV.y=(fh-H*s)/2; mmApply(); }
 function mmZoomAt(cx,cy,f){ const ns=Math.max(.2,Math.min(3.5,MMV.s*f)); MMV.x=cx-(cx-MMV.x)*(ns/MMV.s); MMV.y=cy-(cy-MMV.y)*(ns/MMV.s); MMV.s=ns; mmApply(); }
 function mmZoom(dir){ if(MMLOCK)return; const w=$('mmWrap'); if(!w)return; mmZoomAt(w.clientWidth/2, w.clientHeight/2, dir>0?1.2:1/1.2); }
@@ -1578,7 +1580,9 @@ function mmBranchClick(id){ if(MM_DRAGGED)return; editGoalQuick(id); }
 function initMindmapPanZoom(){
   const w=$('mmWrap'); if(!w)return;
   mmUpdateLockUI();
-  if(MMV.init){ mmApply(); if(MMLOCK) mmRecenter(); } else { MMV.init=true; mmFit(); } // fit lần đầu, sau đó giữ nguyên zoom
+  if(MMV.init){ mmApply(); if(MMLOCK) mmRecenter(); }
+  else { MMV.init=true; let sv=null; try{sv=JSON.parse(store.get('mm_view')||'null')}catch(_){}
+    if(sv&&isFinite(sv.s)&&sv.s>0){ MMV.x=sv.x; MMV.y=sv.y; MMV.s=sv.s; mmApply(); } else { mmFit(); } } // khôi phục zoom/vị trí đã lưu, nếu chưa có thì fit
   if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmRecenter(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
