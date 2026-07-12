@@ -399,12 +399,15 @@
   @media(max-width:520px){.mm{max-width:330px}}
   /* mindmap SVG kiểu XMind */
   .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;overflow-x:auto;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px max(24px,4vw)}
-  .mmsvg{display:block;width:100%;height:auto;min-width:700px}
-  .mm-t{font:800 22px/1 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px}
-  .mm-s{font:italic 13px/1 var(--sans,system-ui);fill:#6b6357}
+  .mmsvg{display:block;width:100%;height:auto;min-width:760px}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
-  .mm-g{cursor:pointer}
-  .mm-g:hover .mm-t{text-decoration:underline}
+  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;cursor:pointer;padding:0 4px}
+  .mml-r{text-align:left;align-items:flex-start}
+  .mml-l{text-align:right;align-items:flex-end}
+  .mml-t{font:800 22px/1.12 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px}
+  .mml-d{font:500 15px/1.4 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
+  .mml-y{font:700 15px/1.4 var(--sans,system-ui);max-width:100%}
+  .mml:hover .mml-t{text-decoration:underline}
   .mmc{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(158deg,#E7473C 0%,#C8382F 100%);border:3px solid #fff;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#fff;cursor:pointer;padding:14px;box-shadow:0 12px 30px rgba(200,56,49,.35)}
   .mmc-av{width:74px;height:74px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
   .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:32px;font-weight:700;color:#E7473C}
@@ -1226,16 +1229,27 @@ function renderGoals(){
   $('goalsList').innerHTML = mm + cards;
   document.querySelectorAll('#goalsView .garea').forEach(gGrow);
 }
-// Mindmap kiểu XMind: nhánh cong nhiều màu, tiêu đề in đậm, "lá" = check-in gạch chân, thẻ đỏ ở giữa.
+// Mindmap kiểu XMind: nhánh cong nhiều màu; nhãn nhánh hiện đủ 🌟 mục tiêu cuộc đời + 🎯 mục tiêu năm (tự xuống dòng); "lá" = check-in gạch chân; thẻ đỏ ở giữa.
 function buildMindmap(areas){
-  const F=22, LF=15, PAD=56, leafH=36, headerH=132, centerW=214, centerH=196, GAP=52;
+  const PAD=56, leafH=34, centerW=214, centerH=196, GAP=48;
+  const LW=340;                 // bề rộng khối nhãn (đơn vị viewBox)
+  const T_LH=27, B_LH=21;       // cao mỗi dòng tiêu đề / nội dung
+  const CH_T=Math.floor(LW/13), CH_B=Math.floor(LW/7.4); // ký tự / dòng (ước lượng)
   const idxOf=a=>areas.indexOf(a);
-  const bandOf=a=>Math.max(headerH,(a.checkins||[]).length*leafH+18);
-  const titleW=a=>Math.min(340,(String(a.name||'(mục tiêu)').toUpperCase()).length*F*0.58+12);
-  const leafW=a=>{let m=0;(a.checkins||[]).forEach(c=>{m=Math.max(m,String(c.text||'').length)});return Math.min(210,Math.max(56,Math.min(m,30)*LF*0.55));};
-  const subYear=a=>{const y=String((a.year&&a.year[GYEAR()])||'');return y.length>34?y.slice(0,33)+'…':y;};
-  const bnxOff=172, hubGap=24, leafGap=134;
-  const rext=a=>bnxOff+titleW(a)+hubGap+leafGap+leafW(a)+38;
+  const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
+  const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
+  const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
+  function labelH(a){
+    const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a);
+    let h=nlines(nm.toUpperCase(),CH_T)*T_LH+6;
+    if(dr) h+=nlines('🌟 '+dr,CH_B)*B_LH+8;
+    if(yr) h+=nlines('🎯 '+yr,CH_B)*B_LH+8;
+    return Math.max(h+12,64);
+  }
+  const leafW=a=>{let m=0;(a.checkins||[]).forEach(c=>{m=Math.max(m,String(c.text||'').length)});return Math.min(220,Math.max(56,Math.min(m,32)*8));};
+  const bandOf=a=>Math.max(labelH(a),(a.checkins||[]).length*leafH+18);
+  const bnxOff=150, hubGap=14, leafGap=96;
+  const rext=a=>bnxOff+LW+hubGap+leafGap+leafW(a)+40;
   // chia đều hai bên theo chiều cao tích luỹ
   const Rt=[],Lt=[]; let rh=0,lh=0;
   areas.forEach(a=>{ const bh=bandOf(a)+GAP; if(rh<=lh){Rt.push(a);rh+=bh;}else{Lt.push(a);lh+=bh;} });
@@ -1244,7 +1258,7 @@ function buildMindmap(areas){
   const cx=Math.round(Lextent+PAD), W=Math.round(cx+Rextent+PAD);
   const rTot=Rt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Rt.length?GAP:0);
   const lTot=Lt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Lt.length?GAP:0);
-  const H=Math.round(Math.max(rTot,lTot,centerH,470)+PAD*2), cy=Math.round(H/2);
+  const H=Math.round(Math.max(rTot,lTot,centerH,420)+PAD*2), cy=Math.round(H/2);
   let paths='',subs='',labels='',leaves='';
   function place(list,side){
     const tot=list.reduce((s,a)=>s+bandOf(a)+GAP,0)-(list.length?GAP:0);
@@ -1254,21 +1268,29 @@ function buildMindmap(areas){
       const col=GTONES[idxOf(a)%GTONES.length];
       const sx=cx+side*(centerW/2-4);
       const sy=Math.round(cy+(idx-(R-1)/2)*(centerH*0.42/Math.max(R-1,1)));
-      const bnx=cx+side*bnxOff, tw=titleW(a), hubX=bnx+side*(tw+hubGap);
+      const bnx=cx+side*bnxOff;                 // mép nhãn phía trong (nối với nhánh)
+      const lh2=labelH(a);
+      const foX=side>0?bnx:bnx-LW;              // góc trái foreignObject
+      const outX=side>0?bnx+LW:bnx-LW;          // mép ngoài nhãn (nơi lá toả ra)
+      // nhánh chính: từ thẻ giữa -> mép trong nhãn
       paths+=`<path d="M ${sx} ${sy} C ${sx+side*72} ${sy}, ${bnx-side*72} ${by}, ${bnx} ${by}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`;
-      paths+=`<path d="M ${bnx} ${by} L ${hubX} ${by}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`;
-      const anc=side>0?'start':'end', tx=bnx+side*6;
-      labels+=`<g class="mm-g" onclick="scrollToGoal('${a.id}')">`+
-        `<text x="${tx}" y="${by-6}" text-anchor="${anc}" class="mm-t" fill="${col}">${escapeHtml(String(a.name||'(mục tiêu)').toUpperCase())}</text>`;
-      const sub=subYear(a);
-      if(sub) labels+=`<text x="${tx}" y="${by+15}" text-anchor="${anc}" class="mm-s">🎯 ${escapeHtml(sub)}</text>`;
-      labels+=`</g>`;
+      // gạch nền dưới nhãn cho giống XMind
+      paths+=`<line x1="${bnx}" y1="${by+lh2/2-2}" x2="${outX}" y2="${by+lh2/2-2}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
+      const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
+      const dr=String(a.dream||''), yr=yrOf(a);
+      const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="scrollToGoal('${a.id}')">`+
+        `<div class="mml-t" style="color:${col}">${nm}</div>`+
+        (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
+        (yr?`<div class="mml-y" style="color:${col}">🎯 ${nl2br(yr)}</div>`:'')+
+        `</div>`;
+      labels+=`<foreignObject x="${foX}" y="${Math.round(by-lh2/2)}" width="${LW}" height="${Math.round(lh2)}" style="overflow:visible">${inner}</foreignObject>`;
+      // lá = check-in
       const cks=(a.checkins||[]).slice().sort((x,z)=>String(z.date).localeCompare(String(x.date)));
-      const Ln=cks.length, lw=leafW(a), leafX=hubX+side*leafGap;
+      const Ln=cks.length, lw=leafW(a), hubX=outX+side*hubGap, leafX=hubX+side*leafGap;
       cks.forEach((c,k)=>{
         const ly=Math.round(by+(k-(Ln-1)/2)*leafH);
-        subs+=`<path d="M ${hubX} ${by} C ${hubX+side*42} ${by}, ${leafX-side*42} ${ly}, ${leafX} ${ly}" fill="none" stroke="${col}" stroke-width="2.4" opacity=".8"/>`;
-        const raw=String(c.text||''), txt=escapeHtml(raw.length>30?raw.slice(0,29)+'…':raw);
+        subs+=`<path d="M ${hubX} ${by} C ${hubX+side*40} ${by}, ${leafX-side*40} ${ly}, ${leafX} ${ly}" fill="none" stroke="${col}" stroke-width="2.4" opacity=".8"/>`;
+        const raw=String(c.text||''), txt=escapeHtml(raw.length>32?raw.slice(0,31)+'…':raw);
         const lanc=side>0?'start':'end';
         leaves+=`<text x="${leafX+side*7}" y="${ly-2}" text-anchor="${lanc}" class="mm-l">${txt}</text>`;
         const ux1=side>0?leafX+7:leafX-7-lw, ux2=side>0?leafX+7+lw:leafX-7;
