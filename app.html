@@ -458,6 +458,11 @@
   .kb-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:14px;align-items:flex-start}
   .kb-col{flex:0 0 300px;max-width:300px;border-radius:16px;display:flex;flex-direction:column;max-height:76vh;overflow:hidden;background:color-mix(in srgb, var(--kc) 8%, #fff);border:1px solid color-mix(in srgb, var(--kc) 30%, var(--line));box-shadow:0 6px 18px color-mix(in srgb, var(--kc) 22%, transparent)}
   .kb-head{display:flex;align-items:center;gap:6px;padding:11px 10px;background:var(--kc)}
+  .kb-grip{flex:none;cursor:grab;color:rgba(255,255,255,.85);font-size:15px;line-height:1;padding:2px 2px;user-select:none}
+  .kb-grip:active{cursor:grabbing}
+  .kb-col.coldragging{opacity:.45}
+  .kb-col.col-before{box-shadow:-5px 0 0 0 var(--ink)}
+  .kb-col.col-after{box-shadow:5px 0 0 0 var(--ink)}
   .kb-title{flex:1;min-width:0;font-weight:800;font-size:15px;border:1px solid transparent;background:transparent;border-radius:8px;padding:5px 7px;color:#fff;letter-spacing:.2px}
   .kb-title::placeholder{color:rgba(255,255,255,.7)}
   .kb-title:focus{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.7);outline:none;color:#fff}
@@ -1325,7 +1330,7 @@ function renderBoard(){
     const kc=GTONES[i%GTONES.length];
     const cards=(c.cards||[]).map(cd=>`<div class="kb-card" draggable="true" data-col="${c.id}" data-id="${cd.id}" ondblclick="kbEditCard('${c.id}','${cd.id}')"><span class="kb-ct">${escapeHtml(cd.text||'')}</span><button class="kb-del" title="Xoá thẻ" onclick="event.stopPropagation();kbDelCard('${c.id}','${cd.id}')">×</button></div>`).join('');
     return `<div class="kb-col" data-col="${c.id}" style="--kc:${kc}">`+
-      `<div class="kb-head"><input class="kb-title" value="${escapeHtml(c.title||'')}" placeholder="Tên cột" onchange="kbEditCol('${c.id}',this.value)"><span class="kb-count">${(c.cards||[]).length}</span><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div>`+
+      `<div class="kb-head"><span class="kb-grip" title="Kéo để đổi thứ tự cột" draggable="true">⠿</span><input class="kb-title" value="${escapeHtml(c.title||'')}" placeholder="Tên cột" onchange="kbEditCol('${c.id}',this.value)"><span class="kb-count">${(c.cards||[]).length}</span><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div>`+
       `<div class="kb-body" data-col="${c.id}">${cards}</div>`+
       `<div class="kb-add"><input class="kb-in" placeholder="Thêm thẻ…" onkeydown="if(event.key==='Enter'){event.preventDefault();kbAddCard('${c.id}',this)}"><button class="kb-addb" onclick="kbAddCard('${c.id}',this.previousElementSibling)">＋</button></div>`+
     `</div>`;
@@ -1339,20 +1344,33 @@ function kbEditCol(id,v){ const c=kbCol(id); if(c){c.title=(v||'').trim();persis
 function kbAddCard(colId,inp){ const c=kbCol(colId); if(!c)return; const t=(inp?inp.value:'').trim(); if(!t){if(inp)inp.focus();return;} c.cards=c.cards||[]; c.cards.push({id:goalUid(),text:t}); persistGoals(); renderGoals(); setTimeout(()=>{const el=document.querySelector('.kb-col[data-col="'+colId+'"] .kb-in');if(el)el.focus();},40); }
 function kbDelCard(colId,cardId){ const c=kbCol(colId); if(!c)return; c.cards=(c.cards||[]).filter(x=>x.id!==cardId); persistGoals(); renderGoals(); }
 function kbEditCard(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; const v=prompt('Sửa nội dung thẻ:', cd.text||''); if(v==null)return; cd.text=(v||'').trim(); persistGoals(); renderGoals(); }
-let KBDRAG=null;
+let KBDRAG=null, KBCOLDRAG=null;
 function initBoardDnD(){
+  // kéo THẺ giữa các cột
   document.querySelectorAll('.kb-card').forEach(card=>{
-    card.addEventListener('dragstart',e=>{ KBDRAG={col:card.dataset.col,id:card.dataset.id}; setTimeout(()=>card.classList.add('dragging'),0); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',card.dataset.id)}catch(_){}} );
+    card.addEventListener('dragstart',e=>{ KBDRAG={col:card.dataset.col,id:card.dataset.id}; KBCOLDRAG=null; setTimeout(()=>card.classList.add('dragging'),0); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',card.dataset.id)}catch(_){}} );
     card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); document.querySelectorAll('.kb-body.over').forEach(b=>b.classList.remove('over')); KBDRAG=null; });
   });
   document.querySelectorAll('.kb-body').forEach(body=>{
-    body.addEventListener('dragover',e=>{ e.preventDefault(); body.classList.add('over'); e.dataTransfer.dropEffect='move'; });
+    body.addEventListener('dragover',e=>{ if(!KBDRAG)return; e.preventDefault(); body.classList.add('over'); e.dataTransfer.dropEffect='move'; });
     body.addEventListener('dragleave',e=>{ if(!body.contains(e.relatedTarget)) body.classList.remove('over'); });
-    body.addEventListener('drop',e=>{ e.preventDefault(); body.classList.remove('over'); if(!KBDRAG)return; const idx=kbCardAfter(body,e.clientY); kbMoveCard(KBDRAG.col,KBDRAG.id,body.dataset.col,idx); KBDRAG=null; });
+    body.addEventListener('drop',e=>{ if(!KBDRAG)return; e.preventDefault(); body.classList.remove('over'); const idx=kbCardAfter(body,e.clientY); kbMoveCard(KBDRAG.col,KBDRAG.id,body.dataset.col,idx); KBDRAG=null; });
+  });
+  // kéo CỘT để đổi thứ tự (dùng tay cầm ⠿)
+  document.querySelectorAll('.kb-grip').forEach(gr=>{
+    const col=gr.closest('.kb-col');
+    gr.addEventListener('dragstart',e=>{ KBCOLDRAG=col.dataset.col; KBDRAG=null; setTimeout(()=>col.classList.add('coldragging'),0); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','col')}catch(_){}} );
+    gr.addEventListener('dragend',()=>{ col.classList.remove('coldragging'); document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('col-before','col-after')); KBCOLDRAG=null; });
+  });
+  document.querySelectorAll('.kb-col').forEach(col=>{
+    col.addEventListener('dragover',e=>{ if(!KBCOLDRAG)return; e.preventDefault(); const r=col.getBoundingClientRect(); const before=e.clientX<r.left+r.width/2; col.classList.toggle('col-before',before); col.classList.toggle('col-after',!before); });
+    col.addEventListener('dragleave',e=>{ if(!col.contains(e.relatedTarget)) col.classList.remove('col-before','col-after'); });
+    col.addEventListener('drop',e=>{ if(!KBCOLDRAG)return; e.preventDefault(); const r=col.getBoundingClientRect(); const before=e.clientX<r.left+r.width/2; const from=KBCOLDRAG, to=col.dataset.col; col.classList.remove('col-before','col-after'); if(from!==to) kbMoveCol(from,to,before); KBCOLDRAG=null; });
   });
 }
 function kbCardAfter(body,y){ const cards=Array.prototype.slice.call(body.querySelectorAll('.kb-card:not(.dragging)')); let idx=cards.length; for(let i=0;i<cards.length;i++){ const r=cards[i].getBoundingClientRect(); if(y < r.top+r.height/2){ idx=i; break; } } return idx; }
 function kbMoveCard(fromCol,cardId,toCol,index){ const fc=kbCol(fromCol), tc=kbCol(toCol); if(!fc||!tc)return; const i=(fc.cards||[]).findIndex(x=>x.id===cardId); if(i<0)return; const cd=fc.cards.splice(i,1)[0]; if(fc===tc && index>i) index--; tc.cards=tc.cards||[]; if(index<0||index>tc.cards.length)index=tc.cards.length; tc.cards.splice(index,0,cd); persistGoals(); renderGoals(); }
+function kbMoveCol(fromId,toId,before){ const cols=kbBoard().cols; const fi=cols.findIndex(c=>c.id===fromId); if(fi<0)return; const col=cols.splice(fi,1)[0]; let ti=cols.findIndex(c=>c.id===toId); if(ti<0){cols.push(col);} else {cols.splice(before?ti:ti+1,0,col);} persistGoals(); renderGoals(); }
 let MMV={x:0,y:0,s:1};
 let MMLOCK=(store.get('mm_lock')!=='0'); // mặc định khoá
 function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`translate(${MMV.x}px,${MMV.y}px) scale(${MMV.s})`; const pct=$('mmPct'); if(pct)pct.textContent=Math.round(MMV.s*100)+'%'; }
