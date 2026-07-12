@@ -979,22 +979,39 @@ function gridBietOn(){
 // Bố cục dạng KHỐI: mỗi mục tiêu là 1 khối lớn, các check-in liệt kê ngay dưới
 function gridMucTieu(){
   const yr=GYEAR(); const rows=[];
+  const desc=String(GOALS.desc||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  if(desc.length){ rows.push(['📝 MÔ TẢ MINH', desc.join('  ·  ')]); rows.push(['']); }
   (GOALS.areas||[]).forEach((a,idx)=>{
     if(idx>0){ rows.push(['']); rows.push(['']); }
     rows.push(['◆  '+((a.name||'(chưa đặt tên)').toUpperCase())]);
     rows.push(['🌟 Ước mơ cả đời', a.dream||'']);
     rows.push(['🎯 Mục tiêu '+yr, (a.year&&a.year[yr])||'']);
+    const kids=(a.children||[]).map(k=>k.name).filter(Boolean);
+    if(kids.length) rows.push(['🌿 Nhánh con', kids.join('  ·  ')]);
     rows.push(['📌 Check-in','Ngày','Tiến độ']);
     const cks=(a.checkins||[]).slice().sort((x,y)=>String(x.date).localeCompare(String(y.date)));
     if(cks.length) cks.forEach(c=>rows.push(['', c.date||'', c.text||'']));
     else rows.push(['','—','(chưa có check-in)']);
   });
-  if(!rows.length) rows.push(['Chưa có mục tiêu nào — thêm trong app ở ⚙️ → 🎯 Mục tiêu.']);
+  if(!rows.length) rows.push(['Chưa có mục tiêu nào — thêm trong app ở tab 🎯 Mục tiêu.']);
   return rows;
 }
+// Bảng Trello: mỗi cột app = 1 cột sheet (giống giao diện app)
+function gridBang(){
+  const cols=(GOALS.board&&GOALS.board.cols)||[];
+  if(!cols.length) return [['Chưa có cột nào — thêm ở phần Bảng trong app.']];
+  const headers=cols.map(c=>{ const cds=(c.cards||[]); const n=cds.length; const done=cds.filter(x=>x.done).length; return (c.title||'(cột)')+(c.check?('  ['+done+'/'+n+']'):('  ('+n+')')); });
+  const maxRows=Math.max.apply(null,cols.map(c=>(c.cards||[]).length).concat([0]));
+  const grid=[headers];
+  for(let r=0;r<maxRows;r++){
+    grid.push(cols.map(c=>{ const cd=(c.cards||[])[r]; if(!cd)return ''; let t=String(cd.text||''); if(c.check)t=(cd.done?'✅ ':'⬜ ')+t; if(cd.goalId){ const a=(GOALS.areas||[]).find(x=>x.id===cd.goalId); if(a)t+='  🔗 '+(a.name||''); } return t; }));
+  }
+  return grid;
+}
+function hex2rgb(h){ h=String(h||'').replace('#',''); if(h.length===3)h=h.split('').map(c=>c+c).join(''); const n=parseInt(h||'0',16)||0; return {red:((n>>16)&255)/255, green:((n>>8)&255)/255, blue:(n&255)/255}; }
 async function syncSheet(openTab){
   await driveEnsureFolder();
-  const TABS=[{title:'Nhật ký',grid:gridNhatKy()},{title:'Danh bạ',grid:gridDanhBa()},{title:'Biết ơn theo người',grid:gridBietOn()},{title:'Mục tiêu cuộc đời',grid:gridMucTieu()}];
+  const TABS=[{title:'Nhật ký',grid:gridNhatKy()},{title:'Mục tiêu cuộc đời',grid:gridMucTieu()},{title:'Bảng',grid:gridBang()},{title:'Danh bạ',grid:gridDanhBa()},{title:'Biết ơn theo người',grid:gridBietOn()}];
   const target=TABS.map(t=>t.title);
   const q=encodeURIComponent("name='Nhật ký (bảng)' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and '"+FOLDER_ID+"' in parents");
   const d=await gfetchJSON('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id)&orderBy=createdTime');
@@ -1016,6 +1033,23 @@ async function syncSheet(openTab){
     await gfetch('https://sheets.googleapis.com/v4/spreadsheets/'+id+'/values:batchClear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranges:target.map(t=>"'"+t+"'")})});
   }
   await gfetch('https://sheets.googleapis.com/v4/spreadsheets/'+id+'/values:batchUpdate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({valueInputOption:'RAW',data:TABS.map(t=>({range:"'"+t.title+"'!A1",values:t.grid}))})});
+  // ---- Định dạng cho dễ nhìn & giống app (đóng băng + in đậm tiêu đề; tab Bảng tô màu header theo màu cột, wrap chữ) ----
+  try{
+    const info2=await gfetchJSON('https://sheets.googleapis.com/v4/spreadsheets/'+id+'?fields=sheets.properties(sheetId,title)');
+    const idOf={}; (info2.sheets||[]).forEach(s=>{ if(s.properties)idOf[s.properties.title]=s.properties.sheetId; });
+    const freqs=[];
+    target.forEach(tt=>{ const sid=idOf[tt]; if(sid==null)return;
+      freqs.push({updateSheetProperties:{properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}});
+      freqs.push({repeatCell:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1},cell:{userEnteredFormat:{textFormat:{bold:true}}},fields:'userEnteredFormat.textFormat.bold'}});
+    });
+    const bid=idOf['Bảng'], bcols=(GOALS.board&&GOALS.board.cols)||[];
+    if(bid!=null&&bcols.length){
+      bcols.forEach((c,i)=>{ const rgb=hex2rgb(c.color||GTONES[i%GTONES.length]); freqs.push({repeatCell:{range:{sheetId:bid,startRowIndex:0,endRowIndex:1,startColumnIndex:i,endColumnIndex:i+1},cell:{userEnteredFormat:{backgroundColor:rgb,horizontalAlignment:'CENTER',textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}}}},fields:'userEnteredFormat(backgroundColor,horizontalAlignment,textFormat)'}}); });
+      freqs.push({repeatCell:{range:{sheetId:bid,startRowIndex:1},cell:{userEnteredFormat:{wrapStrategy:'WRAP',verticalAlignment:'TOP'}},fields:'userEnteredFormat(wrapStrategy,verticalAlignment)'}});
+      freqs.push({updateDimensionProperties:{range:{sheetId:bid,dimension:'COLUMNS',startIndex:0,endIndex:bcols.length},properties:{pixelSize:240},fields:'pixelSize'}});
+    }
+    if(freqs.length) await gfetch('https://sheets.googleapis.com/v4/spreadsheets/'+id+':batchUpdate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requests:freqs})});
+  }catch(_){}
   if(openTab) window.open('https://docs.google.com/spreadsheets/d/'+id,'_blank');
   return id;
 }
