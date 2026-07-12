@@ -1572,10 +1572,11 @@ function buildMindmap(areas){
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
   // Mô tả Minh — tag nhiều màu, nhét thẳng vào thẻ giữa "Minh Võ"
   const desc=String(GOALS.desc||'');
-  const dTags=desc?desc.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean):[];
-  const centerW = dTags.length?336:220;
+  const dTags=desc?desc.split(/\n+/).map(s=>s.trim()).filter(Boolean):[];   // mỗi DÒNG = 1 tag (dấu phẩy giữ nguyên trong tag)
+  let maxTagW=0; dTags.forEach(t=>maxTagW=Math.max(maxTagW,t.length*7.1+24));
+  const centerW = dTags.length? Math.min(480, Math.max(240, maxTagW+40)) : 220;
   let _crw=0, cRows=dTags.length?1:0; const _cmax=centerW-42;
-  dTags.forEach(t=>{ const w=t.length*7.1+24; if(_crw+w>_cmax){cRows++;_crw=w;}else{_crw+=w+6;} });
+  dTags.forEach(t=>{ const w=Math.min(_cmax,t.length*7.1+24); if(_crw+w>_cmax){cRows++;_crw=w;}else{_crw+=w+6;} });
   const centerH = 160 + (dTags.length?cRows*29+8:14);
   const headH=a=>Math.max(34,T_LH)+HEAD_GAP; // tiêu đề 1 dòng (không xuống dòng) tới đường kẻ
   function labelH(a){
@@ -1698,7 +1699,7 @@ function unlinkGoalPost(aid,cid){ const a=findArea(aid); if(!a)return; a.checkin
 function editCenterTitle(){ const cur=goalCenterTitle(); const v=prompt('Đặt tên ở giữa (tên bạn / tên hành trình):', cur); if(v==null)return; GOALS.title=(v||'').trim(); persistGoals(); renderGoals(); }
 function editCenterDesc(){
   const cur=String(GOALS.desc||'');
-  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:500px"><div class="gp-head"><span>📝 Mô tả Minh — cách nhau bằng dấu phẩy</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body" style="padding:14px"><textarea id="mmDescTa" class="md-ta" placeholder="Mỗi cụm cách nhau bằng dấu phẩy, mỗi cụm thành 1 thẻ tag…&#10;Ví dụ: Người biết sống, Chính trực, Sống khoa học, Năng lượng, Kỷ luật">${escapeHtml(cur)}</textarea><div class="md-hint">Mẹo: dùng dấu <b>,</b> để tách thành nhiều thẻ màu.</div><div style="text-align:right;margin-top:10px"><button class="gbtn" onclick="saveCenterDesc()">Lưu</button></div></div></div></div>`;
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:500px"><div class="gp-head"><span>📝 Mô tả Minh — mỗi dòng 1 thẻ</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body" style="padding:14px"><textarea id="mmDescTa" class="md-ta" placeholder="Mỗi DÒNG là 1 thẻ tag (Enter để xuống dòng). Dấu phẩy được giữ nguyên trong thẻ.&#10;Ví dụ:&#10;Là người chính trực&#10;Sống có tu tập, khoa học, cân bằng&#10;Thế hệ sau tự chủ">${escapeHtml(cur)}</textarea><div class="md-hint">Mẹo: <b>xuống dòng (Enter)</b> để tách thẻ; dấu <b>,</b> nằm trong thẻ vẫn giữ nguyên.</div><div style="text-align:right;margin-top:10px"><button class="gbtn" onclick="saveCenterDesc()">Lưu</button></div></div></div></div>`;
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
   setTimeout(()=>{const t=$('mmDescTa'); if(t)t.focus();},30);
 }
