@@ -447,6 +447,9 @@
   .mmwrap.locked .mm-addkid2{display:none}
   .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
   .mm-child:hover{text-decoration:underline}
+  .mm-childedit{font-size:13px;fill:#9a9a9a;cursor:pointer}
+  .mm-childedit:hover{fill:var(--brass)}
+  .mmwrap.locked .mm-childedit{display:none}
   .mmbranch{cursor:grab}
   .mmbranch.dragging{cursor:grabbing}
   .mmbranch.dragging .mml{opacity:.9}
@@ -1625,9 +1628,11 @@ function buildMindmap(areas){
         kids.forEach((kd,k)=>{ const ky=Math.round(by+(k-(KL-1)/2)*30);
           kidsMk+=`<path d="M ${outX} ${lineY} C ${outX+side*42} ${lineY}, ${kX-side*42} ${ky}, ${kX} ${ky}" fill="none" stroke="${col}" stroke-width="2.6" opacity=".85"/>`;
           const kt=String(kd.name||''); const kanc=side>0?'start':'end'; const kw=Math.min(180,kt.length*7.4);
-          kidsMk+=`<text x="${kX+side*7}" y="${ky-2}" text-anchor="${kanc}" class="mm-child" onclick="editGoalQuick('${a.id}')">${escapeHtml(kt)}</text>`;
+          kidsMk+=`<text x="${kX+side*7}" y="${ky-2}" text-anchor="${kanc}" class="mm-child" onclick="mmEditChild('${a.id}','${kd.id}')">${escapeHtml(kt)}</text>`;
           const ux1=side>0?kX+7:kX-7-kw, ux2=side>0?kX+7+kw:kX-7;
           kidsMk+=`<line x1="${ux1}" y1="${ky+3}" x2="${ux2}" y2="${ky+3}" stroke="${col}" stroke-width="2"/>`;
+          const pex=side>0?(kX+14+kw):(kX-14-kw);
+          kidsMk+=`<text x="${pex}" y="${ky-1}" text-anchor="middle" class="mm-childedit" onclick="mmEditChild('${a.id}','${kd.id}')">✎</text>`;
         });
       }
       // cả cụm (đường kẻ dưới tiêu đề + nhãn + nhánh con) bọc trong <g> kéo-thả được
@@ -1728,6 +1733,14 @@ function gqAddChild(id){ const a=findArea(id); if(!a)return; gqStash(id); const 
 function gqDelChild(id,kid){ const a=findArea(id); if(!a)return; gqStash(id); a.children=(a.children||[]).filter(k=>k.id!==kid); persistGoals(); renderGoals(); editGoalQuick(id); }
 // Thêm nhánh con ngay trên mindmap (nút ＋ cạnh pill, hiện khi mở khoá)
 function mmAddChild(id){ const a=findArea(id); if(!a)return; const t=prompt('Tên nhánh con:'); if(t==null)return; const v=(t||'').trim(); if(!v)return; a.children=a.children||[]; a.children.push({id:goalUid(),name:v}); persistGoals(); renderGoals(); }
+function mmEditChild(pid,kid){
+  if(MMLOCK){ editGoalQuick(pid); return; }   // khoá: mở xem/sửa nhánh cha
+  const a=findArea(pid); if(!a)return; const k=(a.children||[]).find(x=>x.id===kid); if(!k)return;
+  const v=prompt('Sửa nhánh con (để trống = xoá):', k.name||''); if(v==null)return;
+  const t=(v||'').trim();
+  if(!t){ a.children=(a.children||[]).filter(x=>x.id!==kid); } else { k.name=t; }
+  persistGoals(); renderGoals();
+}
 function editGoalName(id,val){ const a=findArea(id); if(!a)return; a.name=(val||'').trim(); persistGoals(); renderGoals(); }
 function editGoal(id,key,val){ const a=findArea(id); if(!a)return; a[key]=(val||'').trim(); persistGoals(); }
 function editGoalYear(id,val){ const a=findArea(id); if(!a)return; a.year=a.year||{}; a.year[GYEAR()]=(val||'').trim(); persistGoals(); }
