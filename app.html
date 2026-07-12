@@ -400,6 +400,13 @@
   /* mindmap SVG kiểu XMind */
   .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;height:74vh;min-height:460px;overflow:hidden;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
   .mmwrap.grabbing{cursor:grabbing}
+  .mmwrap.locked{cursor:default}
+  .mmwrap.locked .mmbranch,.mmwrap.locked .mml{cursor:pointer}
+  .mmwrap.locked .mmhint2{display:none}
+  .mmzoom .mmlock{font-size:16px}
+  .mmzoom.locked .mmlock{background:var(--brass);}
+  .mmzsep{width:1px;height:20px;background:var(--line);flex:none;margin:0 2px}
+  .mmzoom.locked button:not(.mmlock),.mmzoom.locked span:not(.mmzsep){opacity:.32;pointer-events:none}
   .mmpan{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;overflow:visible}
   .mmsvg{display:block;overflow:visible}
   .mmzoom{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 6px;box-shadow:0 6px 18px rgba(0,0,0,.16);z-index:6}
@@ -1347,25 +1354,30 @@ function initBoardDnD(){
 function kbCardAfter(body,y){ const cards=Array.prototype.slice.call(body.querySelectorAll('.kb-card:not(.dragging)')); let idx=cards.length; for(let i=0;i<cards.length;i++){ const r=cards[i].getBoundingClientRect(); if(y < r.top+r.height/2){ idx=i; break; } } return idx; }
 function kbMoveCard(fromCol,cardId,toCol,index){ const fc=kbCol(fromCol), tc=kbCol(toCol); if(!fc||!tc)return; const i=(fc.cards||[]).findIndex(x=>x.id===cardId); if(i<0)return; const cd=fc.cards.splice(i,1)[0]; if(fc===tc && index>i) index--; tc.cards=tc.cards||[]; if(index<0||index>tc.cards.length)index=tc.cards.length; tc.cards.splice(index,0,cd); persistGoals(); renderGoals(); }
 let MMV={x:0,y:0,s:1};
+let MMLOCK=(store.get('mm_lock')!=='0'); // mặc định khoá
 function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`translate(${MMV.x}px,${MMV.y}px) scale(${MMV.s})`; const pct=$('mmPct'); if(pct)pct.textContent=Math.round(MMV.s*100)+'%'; }
 function mmFit(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; const s=Math.min(fw/W, fh/H)*0.94; MMV.s=s; MMV.x=(fw-W*s)/2; MMV.y=(fh-H*s)/2; mmApply(); }
 function mmZoomAt(cx,cy,f){ const ns=Math.max(.2,Math.min(3.5,MMV.s*f)); MMV.x=cx-(cx-MMV.x)*(ns/MMV.s); MMV.y=cy-(cy-MMV.y)*(ns/MMV.s); MMV.s=ns; mmApply(); }
-function mmZoom(dir){ const w=$('mmWrap'); if(!w)return; mmZoomAt(w.clientWidth/2, w.clientHeight/2, dir>0?1.2:1/1.2); }
+function mmZoom(dir){ if(MMLOCK)return; const w=$('mmWrap'); if(!w)return; mmZoomAt(w.clientWidth/2, w.clientHeight/2, dir>0?1.2:1/1.2); }
+function mmUpdateLockUI(){ const w=$('mmWrap'); if(w)w.classList.toggle('locked',MMLOCK); const z=$('mmZoomBar'); if(z)z.classList.toggle('locked',MMLOCK); const b=document.querySelector('.mmlock'); if(b)b.textContent=MMLOCK?'🔒':'🔓'; }
+function mmToggleLock(){ MMLOCK=!MMLOCK; store.set('mm_lock', MMLOCK?'1':'0'); mmUpdateLockUI(); if(MMLOCK) mmFit(); }
 let MM_DRAGGED=false;
 function mmBranchClick(id){ if(MM_DRAGGED)return; scrollToGoal(id); }
 function initMindmapPanZoom(){
   const w=$('mmWrap'); if(!w)return;
-  mmFit();
+  mmUpdateLockUI(); mmFit();
+  if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmFit(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
-  w.addEventListener('pointerdown',e=>{ if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
   w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
   const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); };
   w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
-  w.addEventListener('wheel',e=>{ e.preventDefault(); const r=w.getBoundingClientRect(); mmZoomAt(e.clientX-r.left,e.clientY-r.top, e.deltaY<0?1.12:1/1.12); },{passive:false});
+  w.addEventListener('wheel',e=>{ if(MMLOCK)return; e.preventDefault(); const r=w.getBoundingClientRect(); mmZoomAt(e.clientX-r.left,e.clientY-r.top, e.deltaY<0?1.12:1/1.12); },{passive:false});
   // Kéo-thả từng cụm nhánh để sắp xếp thủ công
   w.querySelectorAll('.mmbranch').forEach(g=>{
     g.addEventListener('pointerdown',e=>{
+      if(MMLOCK)return; // khoá thì không kéo cụm (click vẫn cuộn tới thẻ)
       if(e.target.closest&&e.target.closest('.mml-num'))return; // bấm badge số thì mở danh sách, không kéo
       e.stopPropagation(); e.preventDefault();
       const id=g.dataset.id, sx=+g.dataset.sx, sy=+g.dataset.sy, bx=+g.dataset.bx, lyv=+g.dataset.lyv;
@@ -1457,9 +1469,11 @@ function buildMindmap(areas){
   const fo=`<foreignObject x="${cx-centerW/2}" y="${cy-centerH/2}" width="${centerW}" height="${centerH}">`+
     `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div></div>`+
     `</foreignObject>`;
-  return `<div class="mmwrap" id="mmWrap" data-w="${W}" data-h="${H}">`+
+  return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
       `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}</svg></div>`+
-      `<div class="mmzoom">`+
+      `<div class="mmzoom${MMLOCK?' locked':''}" id="mmZoomBar">`+
+        `<button class="mmlock" onclick="mmToggleLock()" title="Khoá / mở di chuyển">${MMLOCK?'🔒':'🔓'}</button>`+
+        `<span class="mmzsep"></span>`+
         `<button onclick="mmZoom(-1)" title="Thu nhỏ">−</button>`+
         `<span id="mmPct">100%</span>`+
         `<button onclick="mmZoom(1)" title="Phóng to">+</button>`+
