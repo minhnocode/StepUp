@@ -414,6 +414,19 @@
   .mmzoom button:hover{background:var(--paper)}
   .mmzoom span{font-size:12.5px;font-weight:700;min-width:44px;text-align:center;color:var(--ink-soft)}
   .mmhint2{position:absolute;left:16px;bottom:18px;font-size:12px;color:var(--ink-faint);background:rgba(255,255,255,.6);padding:4px 10px;border-radius:999px;pointer-events:none}
+  .mmadd{position:absolute;left:16px;top:14px;z-index:6;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.22)}
+  .mmadd:hover{filter:brightness(1.12)}
+  /* ô sửa nhanh mục tiêu (mở từ mindmap) */
+  .gq-row{display:flex;gap:10px;align-items:center;margin-bottom:6px}
+  .gq-icon{flex:none;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:22px;line-height:1;cursor:pointer}
+  .gq-icon:hover{border-color:var(--brass);background:var(--paper)}
+  .gq-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;outline:none;color:inherit}
+  .gq-name:focus{border-color:var(--brass)}
+  .gq-lab{display:block;font-size:12.5px;color:var(--ink-soft);font-weight:600;margin:11px 2px 5px}
+  .gq-ta{width:100%;box-sizing:border-box;min-height:62px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.55;font-family:inherit;color:inherit;outline:none;resize:vertical}
+  .gq-ta:focus{border-color:var(--brass)}
+  .gq-foot{display:flex;justify-content:space-between;align-items:center;margin-top:15px}
+  .gq-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-weight:600}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
   .mmbranch{cursor:grab}
   .mmbranch.dragging{cursor:grabbing}
@@ -1476,7 +1489,7 @@ function mmRecenter(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||
 function mmUpdateLockUI(){ const w=$('mmWrap'); if(w)w.classList.toggle('locked',MMLOCK); const z=$('mmZoomBar'); if(z)z.classList.toggle('locked',MMLOCK); const b=document.querySelector('.mmlock'); if(b)b.textContent=MMLOCK?'🔒':'🔓'; }
 function mmToggleLock(){ MMLOCK=!MMLOCK; store.set('mm_lock', MMLOCK?'1':'0'); mmUpdateLockUI(); /* khoá: giữ nguyên mức zoom & vị trí hiện tại, không fit lại */ }
 let MM_DRAGGED=false;
-function mmBranchClick(id){ if(MM_DRAGGED)return; scrollToGoal(id); }
+function mmBranchClick(id){ if(MM_DRAGGED)return; editGoalQuick(id); }
 function initMindmapPanZoom(){
   const w=$('mmWrap'); if(!w)return;
   mmUpdateLockUI();
@@ -1484,7 +1497,7 @@ function initMindmapPanZoom(){
   if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmRecenter(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
-  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmadd')||e.target.closest('.mmbranch')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
   w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
   const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); };
   w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
@@ -1599,6 +1612,7 @@ function buildMindmap(areas){
     `<div xmlns="http://www.w3.org/1999/xhtml" class="mmdesc" onclick="editCenterDesc()" title="Sửa mô tả"><div class="mmdesc-h">📝 Mô tả Minh</div>${descInner}</div>`+
     `</foreignObject>`;
   return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
+      `<button class="mmadd" onclick="addGoalArea()">＋ Thêm nhánh</button>`+
       `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}${dfo}</svg></div>`+
       `<div class="mmzoom${MMLOCK?' locked':''}" id="mmZoomBar">`+
         `<button class="mmlock" onclick="mmToggleLock()" title="Khoá / mở di chuyển">${MMLOCK?'🔒':'🔓'}</button>`+
@@ -1652,8 +1666,25 @@ function goalCardHTML(a){
     <div class="gck-list">${cksHtml}</div>
     <div class="gck-add"><input class="ginput gck-in" id="gcin_${a.id}" placeholder="Tiến độ hôm nay…" onkeydown="if(event.key==='Enter'){event.preventDefault();addCheckin('${a.id}')}"><button class="gbtn sm" onclick="addCheckin('${a.id}')">＋</button></div>`;
 }
-function addGoalArea(){ GOALS.areas=GOALS.areas||[]; const id=goalUid(); GOALS.areas.push({id,name:'',dream:'',year:{},checkins:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const el=$('gc_'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const inp=el.querySelector('.gname');if(inp)inp.focus();}},60); }
+function addGoalArea(){ GOALS.areas=GOALS.areas||[]; const id=goalUid(); GOALS.areas.push({id,name:'',dream:'',year:{},checkins:[]}); persistGoals(); renderGoals(); editGoalQuick(id); }
 function removeGoalArea(id){ if(!id)return; if(!confirm('Xoá mục tiêu này (cả check-in)?'))return; GOALS.areas=(GOALS.areas||[]).filter(a=>a.id!==id); persistGoals(); renderGoals(); }
+// Sửa nhanh 1 mục tiêu ngay trên mindmap (icon + tên + 🌟 ước mơ + 🎯 năm) — khỏi cuộn xuống thẻ
+function editGoalQuick(id){
+  const a=findArea(id); if(!a)return; const yr=GYEAR(), yg=(a.year&&a.year[yr])||'';
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:480px">`+
+    `<div class="gp-head"><span>${goalIcon(a)} Mục tiêu</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>`+
+    `<div class="gp-body" style="padding:14px">`+
+      `<div class="gq-row"><button class="gq-icon" title="Đổi icon" onclick="gqIconEdit('${a.id}')">${goalIcon(a)}</button><input class="gq-name" id="gqName" value="${escapeHtml(a.name||'')}" placeholder="Tên mục tiêu (Sức khỏe, Sự nghiệp…)"></div>`+
+      `<label class="gq-lab">🌟 Ước mơ cả đời</label><textarea class="gq-ta" id="gqDream" placeholder="Bạn mong điều gì cho mảng này…">${escapeHtml(a.dream||'')}</textarea>`+
+      `<label class="gq-lab">🎯 Mục tiêu ${yr}</label><textarea class="gq-ta" id="gqYear" placeholder="Năm nay bạn muốn đạt gì…">${escapeHtml(yg)}</textarea>`+
+      `<div class="gq-foot"><button class="gq-del" onclick="closeGoalPosts();removeGoalArea('${a.id}')">🗑 Xoá nhánh</button><button class="gbtn" onclick="saveGoalQuick('${a.id}')">Lưu</button></div>`+
+    `</div></div></div>`;
+  let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
+  setTimeout(()=>{const n=$('gqName'); if(n){n.focus(); if(!a.name)n.select();}},30);
+}
+function gqStash(id){ const a=findArea(id); if(!a)return; if($('gqName'))a.name=$('gqName').value.trim(); if($('gqDream'))a.dream=$('gqDream').value.trim(); a.year=a.year||{}; if($('gqYear'))a.year[GYEAR()]=$('gqYear').value.trim(); }
+function saveGoalQuick(id){ gqStash(id); persistGoals(); closeGoalPosts(); renderGoals(); }
+function gqIconEdit(id){ const a=findArea(id); if(!a)return; gqStash(id); const v=prompt('Nhập 1 emoji cho mục tiêu (để trống = tự chọn theo tên):', a.icon||''); if(v!=null)a.icon=(v||'').trim(); persistGoals(); editGoalQuick(id); }
 function editGoalName(id,val){ const a=findArea(id); if(!a)return; a.name=(val||'').trim(); persistGoals(); renderGoals(); }
 function editGoal(id,key,val){ const a=findArea(id); if(!a)return; a[key]=(val||'').trim(); persistGoals(); }
 function editGoalYear(id,val){ const a=findArea(id); if(!a)return; a.year=a.year||{}; a.year[GYEAR()]=(val||'').trim(); persistGoals(); }
