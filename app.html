@@ -513,8 +513,10 @@
   .mm-hint2{text-align:center;color:var(--ink-faint);font-size:12px;margin:6px 0 2px}
   /* Bảng kiểu Trello (dưới mindmap) — full width, nhiều màu */
   .kb-wrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:18px;margin-bottom:6px;padding:16px max(24px,4vw) 10px;background:linear-gradient(180deg,#FBF4E2 0%,#FAF6EC 100%);border-top:1px solid var(--line)}
-  .kb-title-row{font-family:var(--serif);font-weight:600;font-size:17px;margin:2px 2px 14px;color:var(--ink)}
   .kb-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:14px;align-items:flex-start}
+  .kb-boardlabel{flex:none;width:132px;align-self:stretch;padding:6px 14px 0 0;position:sticky;left:0;z-index:3;background:linear-gradient(90deg,#FBF4E2 78%,rgba(251,244,226,0))}
+  .kb-bl-t{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink);line-height:1.2}
+  .kb-bl-s{font-size:11.5px;color:var(--ink-faint);margin-top:5px;line-height:1.45}
   .kb-col{flex:0 0 300px;max-width:300px;border-radius:16px;display:flex;flex-direction:column;max-height:76vh;overflow:hidden;background:color-mix(in srgb, var(--kc) 8%, #fff);border:1px solid color-mix(in srgb, var(--kc) 30%, var(--line));box-shadow:0 6px 18px color-mix(in srgb, var(--kc) 22%, transparent)}
   .kb-head{display:flex;align-items:center;gap:6px;padding:11px 10px;background:var(--kc)}
   .kb-grip{flex:none;cursor:grab;color:rgba(255,255,255,.85);font-size:15px;line-height:1;padding:2px 2px;user-select:none}
@@ -1444,8 +1446,8 @@ function renderBoard(){
       `<div class="kb-add"><input class="kb-in" placeholder="Thêm thẻ…" onkeydown="if(event.key==='Enter'){event.preventDefault();kbAddCard('${c.id}',this)}"><button class="kb-addb" onclick="kbAddCard('${c.id}',this.previousElementSibling)">＋</button></div>`+
     `</div>`;
   }).join('');
-  return `<div class="kb-wrap"><div class="kb-title-row">🗂️ Bảng (kéo thẻ sang cột khác)</div>`+
-    `<div class="kb-board">${cols}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
+  return `<div class="kb-wrap">`+
+    `<div class="kb-board"><div class="kb-boardlabel"><div class="kb-bl-t">🗂️ Bảng</div><div class="kb-bl-s">kéo thẻ sang cột khác</div></div>${cols}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
 }
 function kbAddCol(){ const b=kbBoard(); b.cols.push({id:goalUid(),title:'Cột mới',cards:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const els=document.querySelectorAll('.kb-title');const el=els[els.length-1];if(el){el.focus();el.select();}},40); }
 function kbDelCol(id){ const c=kbCol(id); if(!c)return; if((c.cards||[]).length && !confirm('Xoá cột này (cả '+c.cards.length+' thẻ)?'))return; const b=kbBoard(); b.cols=b.cols.filter(x=>x.id!==id); persistGoals(); renderGoals(); }
