@@ -410,9 +410,8 @@
   .mml-d{font:500 15px/1.45 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
   .mml-y{font:700 15px/1.45 var(--sans,system-ui);max-width:100%}
   .mml:hover .mml-t{text-decoration:underline}
-  .mml-cw{margin-top:5px}
-  .mml-cnt{display:inline-flex;align-items:center;gap:5px;color:#fff;font:700 13px/1 var(--sans,system-ui);padding:6px 12px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-  .mml-cnt:hover{filter:brightness(1.08)}
+  .mml-num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;color:#fff;font:800 13px/1 var(--sans,system-ui);vertical-align:2px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+  .mml-num:hover{filter:brightness(1.1)}
   /* overlay danh sách post link vào */
   #gpOverlay .gp-ov{position:fixed;inset:0;background:rgba(20,20,25,.5);backdrop-filter:blur(2px);z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}
   #gpOverlay .gp-box{background:var(--card);border-radius:18px;max-width:560px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
@@ -1281,14 +1280,13 @@ function buildMindmap(areas){
   const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
   const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
-  const ICON_H=40, CNT_H=34;
+  const ICON_H=40;
   function labelH(a){
-    const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a);
+    const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
     let h=ICON_H+nlines(nm.toUpperCase(),CH_T)*T_LH+6;
     if(dr) h+=nlines('🌟 '+dr,CH_B)*B_LH+8;
-    if(yr) h+=nlines('🎯 '+GYEAR()+': '+yr,CH_B)*B_LH+8;
-    h+=CNT_H;
-    return Math.max(h+12,ICON_H+CNT_H+58);
+    if(yr||cnt) h+=nlines('🎯 '+GYEAR()+':  '+yr,CH_B)*B_LH+8;
+    return Math.max(h+12,ICON_H+64);
   }
   const bandOf=a=>labelH(a);
   const bnxOff=150;
@@ -1321,12 +1319,12 @@ function buildMindmap(areas){
       paths+=`<line x1="${bnx}" y1="${by+lh2/2-2}" x2="${outX}" y2="${by+lh2/2-2}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
       const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
+      const badge=`<span class="mml-num" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem ${cnt} post link vào">${cnt}</span>`;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="scrollToGoal('${a.id}')">`+
         `<div class="mml-ic">${goalIcon(a)}</div>`+
         `<div class="mml-t" style="color:${col}">${nm}</div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
-        (yr?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)}</div>`:'')+
-        `<div class="mml-cw"><span class="mml-cnt" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem toàn bộ post đã link vào">📎 ${cnt} post link vào</span></div>`+
+        ((yr||cnt)?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${badge} ${nl2br(yr)}</div>`:'')+
         `</div>`;
       labels+=`<foreignObject x="${foX}" y="${Math.round(by-lh2/2)}" width="${LW}" height="${Math.round(lh2)}" style="overflow:visible">${inner}</foreignObject>`;
     });
