@@ -410,6 +410,21 @@
   .mml-d{font:500 15px/1.45 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
   .mml-y{font:700 15px/1.45 var(--sans,system-ui);max-width:100%}
   .mml:hover .mml-t{text-decoration:underline}
+  .mml-cw{margin-top:5px}
+  .mml-cnt{display:inline-flex;align-items:center;gap:5px;color:#fff;font:700 13px/1 var(--sans,system-ui);padding:6px 12px;border-radius:999px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+  .mml-cnt:hover{filter:brightness(1.08)}
+  /* overlay danh sách post link vào */
+  #gpOverlay .gp-ov{position:fixed;inset:0;background:rgba(20,20,25,.5);backdrop-filter:blur(2px);z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}
+  #gpOverlay .gp-box{background:var(--card);border-radius:18px;max-width:560px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
+  #gpOverlay .gp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:2px solid var(--line);font:600 15.5px/1.35 var(--sans);font-family:var(--serif)}
+  #gpOverlay .gp-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink-faint);line-height:1}
+  #gpOverlay .gp-body{overflow:auto;padding:8px 10px 14px}
+  #gpOverlay .gp-row{display:flex;align-items:flex-start;gap:11px;padding:11px 8px;border-bottom:1px solid var(--line-soft)}
+  #gpOverlay .gp-row:last-child{border-bottom:none}
+  #gpOverlay .gp-d{flex:none;font-weight:700;font-size:12.5px;min-width:78px}
+  #gpOverlay .gp-t{flex:1;font-size:14.5px;line-height:1.5;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  #gpOverlay .gp-x{flex:none;background:none;border:none;color:var(--ink-faint);font-size:17px;line-height:1;cursor:pointer}
+  #gpOverlay .gp-x:hover{color:var(--danger)}
   /* thẻ đổi icon trong card */
   .gname-row{display:flex;align-items:center;gap:9px;margin-bottom:2px}
   .gname-row .gname{flex:1;margin:0}
@@ -1266,18 +1281,18 @@ function buildMindmap(areas){
   const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
   const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
-  const ICON_H=40;
+  const ICON_H=40, CNT_H=34;
   function labelH(a){
     const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a);
     let h=ICON_H+nlines(nm.toUpperCase(),CH_T)*T_LH+6;
     if(dr) h+=nlines('🌟 '+dr,CH_B)*B_LH+8;
-    if(yr) h+=nlines('🎯 '+yr,CH_B)*B_LH+8;
-    return Math.max(h+12,ICON_H+64);
+    if(yr) h+=nlines('🎯 '+GYEAR()+': '+yr,CH_B)*B_LH+8;
+    h+=CNT_H;
+    return Math.max(h+12,ICON_H+CNT_H+58);
   }
-  const leafW=a=>{let m=0;(a.checkins||[]).forEach(c=>{m=Math.max(m,String(c.text||'').length)});return Math.min(220,Math.max(56,Math.min(m,32)*8));};
-  const bandOf=a=>Math.max(labelH(a),(a.checkins||[]).length*leafH+18);
-  const bnxOff=150, hubGap=14, leafGap=96;
-  const rext=a=>bnxOff+LW+hubGap+leafGap+leafW(a)+40;
+  const bandOf=a=>labelH(a);
+  const bnxOff=150;
+  const rext=a=>bnxOff+LW+50;
   // chia đều hai bên theo chiều cao tích luỹ
   const Rt=[],Lt=[]; let rh=0,lh=0;
   areas.forEach(a=>{ const bh=bandOf(a)+GAP; if(rh<=lh){Rt.push(a);rh+=bh;}else{Lt.push(a);lh+=bh;} });
@@ -1305,26 +1320,15 @@ function buildMindmap(areas){
       // gạch nền dưới nhãn cho giống XMind
       paths+=`<line x1="${bnx}" y1="${by+lh2/2-2}" x2="${outX}" y2="${by+lh2/2-2}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
-      const dr=String(a.dream||''), yr=yrOf(a);
+      const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="scrollToGoal('${a.id}')">`+
         `<div class="mml-ic">${goalIcon(a)}</div>`+
         `<div class="mml-t" style="color:${col}">${nm}</div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
-        (yr?`<div class="mml-y" style="color:${col}">🎯 ${nl2br(yr)}</div>`:'')+
+        (yr?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)}</div>`:'')+
+        `<div class="mml-cw"><span class="mml-cnt" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem toàn bộ post đã link vào">📎 ${cnt} post link vào</span></div>`+
         `</div>`;
       labels+=`<foreignObject x="${foX}" y="${Math.round(by-lh2/2)}" width="${LW}" height="${Math.round(lh2)}" style="overflow:visible">${inner}</foreignObject>`;
-      // lá = check-in
-      const cks=(a.checkins||[]).slice().sort((x,z)=>String(z.date).localeCompare(String(x.date)));
-      const Ln=cks.length, lw=leafW(a), hubX=outX+side*hubGap, leafX=hubX+side*leafGap;
-      cks.forEach((c,k)=>{
-        const ly=Math.round(by+(k-(Ln-1)/2)*leafH);
-        subs+=`<path d="M ${hubX} ${by} C ${hubX+side*40} ${by}, ${leafX-side*40} ${ly}, ${leafX} ${ly}" fill="none" stroke="${col}" stroke-width="2.4" opacity=".8"/>`;
-        const raw=String(c.text||''), txt=escapeHtml(raw.length>32?raw.slice(0,31)+'…':raw);
-        const lanc=side>0?'start':'end';
-        leaves+=`<text x="${leafX+side*7}" y="${ly-2}" text-anchor="${lanc}" class="mm-l">${txt}</text>`;
-        const ux1=side>0?leafX+7:leafX-7-lw, ux2=side>0?leafX+7+lw:leafX-7;
-        leaves+=`<line x1="${ux1}" y1="${ly+3}" x2="${ux2}" y2="${ly+3}" stroke="${col}" stroke-width="2"/>`;
-      });
     });
   }
   place(Rt,1); place(Lt,-1);
@@ -1336,6 +1340,20 @@ function buildMindmap(areas){
   return `<div class="mmwrap"><svg class="mmsvg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${paths}${subs}${labels}${leaves}${fo}</svg></div>`;
 }
 function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('gc-flash');setTimeout(()=>el.classList.remove('gc-flash'),1000);} }
+function showGoalPosts(id){
+  const a=findArea(id); if(!a)return;
+  const col=GTONES[(GOALS.areas||[]).indexOf(a)%GTONES.length];
+  const cks=(a.checkins||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)));
+  const rows=cks.length?cks.map(c=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${c.date?fmtD(c.date):''}</span><span class="gp-t">${escapeHtml(c.text||'')}</span><button class="gp-x" title="Bỏ link" onclick="unlinkGoalPost('${a.id}','${c.id}')">×</button></div>`).join(''):'<div class="gempty" style="padding:22px 4px;text-align:center">Chưa có post nào link vào mục tiêu này.</div>';
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box">
+      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} — <b style="color:${col}">${cks.length}</b> post link vào</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
+      <div class="gp-body">${rows}</div>
+    </div></div>`;
+  let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);}
+  el.innerHTML=html;
+}
+function closeGoalPosts(){ const el=$('gpOverlay'); if(el)el.innerHTML=''; }
+function unlinkGoalPost(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoals(); showGoalPosts(aid); }
 function editCenterTitle(){ const cur=goalCenterTitle(); const v=prompt('Đặt tên ở giữa (tên bạn / tên hành trình):', cur); if(v==null)return; GOALS.title=(v||'').trim(); persistGoals(); renderGoals(); }
 function goalCardHTML(a){
   const yr=GYEAR(); const yg=(a.year&&a.year[yr])||'';
