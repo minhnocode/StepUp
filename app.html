@@ -1403,7 +1403,32 @@ function kbOpenLink(colId,cardId){
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
 }
 function kbSetLink(colId,cardId,goalId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; if(goalId){ cd.goalId=goalId; cd.goalYear=GYEAR(); } else { delete cd.goalId; delete cd.goalYear; } persistGoals(); closeGoalPosts(); renderGoals(); }
-function kbToggleDone(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; cd.done=!cd.done; if(cd.done)cd.doneDate=todayISO(); else delete cd.doneDate; persistGoals(); renderGoals(); }
+function kbToggleDone(colId,cardId){
+  const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return;
+  cd.done=!cd.done; if(cd.done)cd.doneDate=todayISO(); else delete cd.doneDate;
+  persistGoals(); renderGoals();
+  // Tích xong một việc đã gắn mục tiêu -> hỏi ghi vào Nhật ký hôm nay
+  if(cd.done && cd.goalId && !cd.journaled){
+    if(confirm('Ghi việc này vào Nhật ký hôm nay (mục Thành tựu)?\n\n✓ '+(cd.text||''))){
+      if(journalAddAchievement(cd.text||'')){ cd.journaled=true; persistGoals(); toast('Đã ghi vào nhật ký hôm nay ✅'); try{renderCurrentView()}catch(_){} }
+    }
+  }
+}
+// Thêm 1 dòng "✓ …" vào mục Thành tựu (checklist note) của nhật ký HÔM NAY
+function journalAddAchievement(text){
+  text=(text||'').trim(); if(!text)return false;
+  const af=FIELDS.find(f=>f.id==='achievements')||FIELDS.find(f=>f.type==='checklist');
+  if(!af){ toast('Không tìm thấy mục Thành tựu trong nhật ký.',true); return false; }
+  const iso=todayISO(), base=BYDATE[iso];
+  const e=base?JSON.parse(JSON.stringify(base)):blankEntry(iso);
+  const cv=normCheck(e.data[af.id]); cv.note=cv.note?(cv.note+'\n✓ '+text):('✓ '+text); e.data[af.id]=cv;
+  if(!e.id)e.id=uuid();
+  const now=new Date().toISOString(); e.updatedAt=now; if(!e.createdAt)e.createdAt=now;
+  const idx=ENTRIES.findIndex(x=>x.id===e.id); if(idx>=0)ENTRIES[idx]=e; else ENTRIES.push(e);
+  indexEntries(); store.set('journal_cache',JSON.stringify(ENTRIES));
+  if(CFG.url){markPending(e);flushPending()} else persistLocal();
+  return true;
+}
 let KBDRAG=null, KBCOLDRAG=null;
 function initBoardDnD(){
   // kéo THẺ giữa các cột
