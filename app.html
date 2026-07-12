@@ -445,6 +445,30 @@
   .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:32px;font-weight:700;color:#E7473C}
   .mmc-name{font-family:var(--serif);font-weight:700;font-size:19px;text-align:center;line-height:1.25;word-break:break-word}
   .mm-hint2{text-align:center;color:var(--ink-faint);font-size:12px;margin:6px 0 2px}
+  /* Bảng kiểu Trello (dưới mindmap) */
+  .kb-wrap{margin:20px 0 8px}
+  .kb-title-row{font-family:var(--serif);font-weight:600;font-size:16px;margin:2px 2px 12px;color:var(--ink)}
+  .kb-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;align-items:flex-start}
+  .kb-col{flex:0 0 300px;max-width:300px;background:var(--paper);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;max-height:74vh}
+  .kb-head{display:flex;align-items:center;gap:6px;padding:10px 8px 6px}
+  .kb-title{flex:1;min-width:0;font-weight:700;font-size:14.5px;border:1px solid transparent;background:transparent;border-radius:8px;padding:5px 7px;color:var(--ink)}
+  .kb-title:focus{background:#fff;border-color:var(--brass);outline:none}
+  .kb-count{flex:none;font-size:12px;font-weight:700;color:var(--ink-faint);background:var(--card);border:1px solid var(--line);border-radius:999px;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center}
+  .kb-colx{flex:none;background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;line-height:1}
+  .kb-colx:hover{opacity:1}
+  .kb-body{flex:1;overflow-y:auto;padding:4px 10px;min-height:46px;display:flex;flex-direction:column;gap:8px;transition:background .12s}
+  .kb-body.over{background:rgba(182,138,63,.12);border-radius:10px}
+  .kb-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 30px 9px 11px;font-size:13.5px;line-height:1.45;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:grab;position:relative;word-break:break-word}
+  .kb-card:active{cursor:grabbing}
+  .kb-card.dragging{opacity:.35}
+  .kb-del{position:absolute;top:5px;right:6px;background:none;border:none;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;padding:0}
+  .kb-del:hover{color:var(--danger)}
+  .kb-add{display:flex;gap:6px;padding:8px 10px 10px}
+  .kb-in{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;outline:none;background:#fff;color:inherit}
+  .kb-in:focus{border-color:var(--brass)}
+  .kb-addb{flex:none;background:var(--ink);color:#fff;border:none;border-radius:8px;width:32px;font-size:16px;cursor:pointer}
+  .kb-addcol{flex:0 0 200px;align-self:flex-start;background:rgba(0,0,0,.04);border:1px dashed var(--line);border-radius:12px;padding:13px;cursor:pointer;font-size:13.5px;color:var(--ink-soft)}
+  .kb-addcol:hover{background:rgba(0,0,0,.07)}
   /* danh sách đầy đủ các mục tiêu (thẻ nhiều màu) */
   .gcards{margin-top:26px;display:grid;grid-template-columns:1fr;gap:16px}
   @media(min-width:760px){.gcards{grid-template-columns:1fr 1fr}}
@@ -1278,10 +1302,47 @@ function renderGoals(){
   const mm = N ? buildMindmap(areas) : '';
   const cards = N ? '<div class="gcards">'+areas.map((a,i)=>`<div class="gcard2" id="gc_${a.id}" style="--ac:${GTONES[i%GTONES.length]}"><button class="gdel2" title="Xoá mục tiêu" onclick="removeGoalArea('${a.id}')">🗑</button>${goalCardHTML(a)}</div>`).join('')+'</div>'
     : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
-  $('goalsList').innerHTML = mm + cards;
+  $('goalsList').innerHTML = mm + renderBoard() + cards;
   document.querySelectorAll('#goalsView .garea').forEach(gGrow);
   if(N) initMindmapPanZoom();
+  initBoardDnD();
 }
+/* ===== Bảng kiểu Trello (dưới mindmap): cột · thẻ · kéo-thả ===== */
+function kbBoard(){ GOALS.board=GOALS.board||{cols:[]}; return GOALS.board; }
+function kbCol(id){ return ((GOALS.board&&GOALS.board.cols)||[]).find(c=>c.id===id); }
+function renderBoard(){
+  const b=(GOALS.board&&Array.isArray(GOALS.board.cols))?GOALS.board:{cols:[]};
+  const cols=b.cols.map(c=>{
+    const cards=(c.cards||[]).map(cd=>`<div class="kb-card" draggable="true" data-col="${c.id}" data-id="${cd.id}" ondblclick="kbEditCard('${c.id}','${cd.id}')"><span class="kb-ct">${escapeHtml(cd.text||'')}</span><button class="kb-del" title="Xoá thẻ" onclick="event.stopPropagation();kbDelCard('${c.id}','${cd.id}')">×</button></div>`).join('');
+    return `<div class="kb-col" data-col="${c.id}">`+
+      `<div class="kb-head"><input class="kb-title" value="${escapeHtml(c.title||'')}" placeholder="Tên cột" onchange="kbEditCol('${c.id}',this.value)"><span class="kb-count">${(c.cards||[]).length}</span><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div>`+
+      `<div class="kb-body" data-col="${c.id}">${cards}</div>`+
+      `<div class="kb-add"><input class="kb-in" placeholder="Thêm thẻ…" onkeydown="if(event.key==='Enter'){event.preventDefault();kbAddCard('${c.id}',this)}"><button class="kb-addb" onclick="kbAddCard('${c.id}',this.previousElementSibling)">＋</button></div>`+
+    `</div>`;
+  }).join('');
+  return `<div class="kb-wrap"><div class="kb-title-row">🗂️ Bảng (kéo thẻ sang cột khác)</div>`+
+    `<div class="kb-board">${cols}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
+}
+function kbAddCol(){ const b=kbBoard(); b.cols.push({id:goalUid(),title:'Cột mới',cards:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const els=document.querySelectorAll('.kb-title');const el=els[els.length-1];if(el){el.focus();el.select();}},40); }
+function kbDelCol(id){ const c=kbCol(id); if(!c)return; if((c.cards||[]).length && !confirm('Xoá cột này (cả '+c.cards.length+' thẻ)?'))return; const b=kbBoard(); b.cols=b.cols.filter(x=>x.id!==id); persistGoals(); renderGoals(); }
+function kbEditCol(id,v){ const c=kbCol(id); if(c){c.title=(v||'').trim();persistGoals();} }
+function kbAddCard(colId,inp){ const c=kbCol(colId); if(!c)return; const t=(inp?inp.value:'').trim(); if(!t){if(inp)inp.focus();return;} c.cards=c.cards||[]; c.cards.push({id:goalUid(),text:t}); persistGoals(); renderGoals(); setTimeout(()=>{const el=document.querySelector('.kb-col[data-col="'+colId+'"] .kb-in');if(el)el.focus();},40); }
+function kbDelCard(colId,cardId){ const c=kbCol(colId); if(!c)return; c.cards=(c.cards||[]).filter(x=>x.id!==cardId); persistGoals(); renderGoals(); }
+function kbEditCard(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; const v=prompt('Sửa nội dung thẻ:', cd.text||''); if(v==null)return; cd.text=(v||'').trim(); persistGoals(); renderGoals(); }
+let KBDRAG=null;
+function initBoardDnD(){
+  document.querySelectorAll('.kb-card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{ KBDRAG={col:card.dataset.col,id:card.dataset.id}; setTimeout(()=>card.classList.add('dragging'),0); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',card.dataset.id)}catch(_){}} );
+    card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); document.querySelectorAll('.kb-body.over').forEach(b=>b.classList.remove('over')); KBDRAG=null; });
+  });
+  document.querySelectorAll('.kb-body').forEach(body=>{
+    body.addEventListener('dragover',e=>{ e.preventDefault(); body.classList.add('over'); e.dataTransfer.dropEffect='move'; });
+    body.addEventListener('dragleave',e=>{ if(!body.contains(e.relatedTarget)) body.classList.remove('over'); });
+    body.addEventListener('drop',e=>{ e.preventDefault(); body.classList.remove('over'); if(!KBDRAG)return; const idx=kbCardAfter(body,e.clientY); kbMoveCard(KBDRAG.col,KBDRAG.id,body.dataset.col,idx); KBDRAG=null; });
+  });
+}
+function kbCardAfter(body,y){ const cards=Array.prototype.slice.call(body.querySelectorAll('.kb-card:not(.dragging)')); let idx=cards.length; for(let i=0;i<cards.length;i++){ const r=cards[i].getBoundingClientRect(); if(y < r.top+r.height/2){ idx=i; break; } } return idx; }
+function kbMoveCard(fromCol,cardId,toCol,index){ const fc=kbCol(fromCol), tc=kbCol(toCol); if(!fc||!tc)return; const i=(fc.cards||[]).findIndex(x=>x.id===cardId); if(i<0)return; const cd=fc.cards.splice(i,1)[0]; if(fc===tc && index>i) index--; tc.cards=tc.cards||[]; if(index<0||index>tc.cards.length)index=tc.cards.length; tc.cards.splice(index,0,cd); persistGoals(); renderGoals(); }
 let MMV={x:0,y:0,s:1};
 function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`translate(${MMV.x}px,${MMV.y}px) scale(${MMV.s})`; const pct=$('mmPct'); if(pct)pct.textContent=Math.round(MMV.s*100)+'%'; }
 function mmFit(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; const s=Math.min(fw/W, fh/H)*0.94; MMV.s=s; MMV.x=(fw-W*s)/2; MMV.y=(fh-H*s)/2; mmApply(); }
