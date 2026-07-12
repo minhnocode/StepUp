@@ -396,9 +396,20 @@
   .mm-node:hover{border-color:var(--brass);color:var(--brass)}
   .mm-node-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:88px}
   .mm-node-c{flex:none;background:var(--brass);color:#fff;font-size:11px;font-weight:700;border-radius:999px;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
-  .mm-node{border-left:4px solid var(--ac,var(--line))}
-  .mm-dotc{width:8px;height:8px;border-radius:50%;flex:none}
-  @media(max-width:520px){.mm{max-width:330px}.mm-node{font-size:12px;padding:6px 10px;max-width:104px}.mm-node-t{max-width:64px}.mm-title{font-size:11px}}
+  @media(max-width:520px){.mm{max-width:330px}}
+  /* mindmap SVG kiểu XMind */
+  .mmwrap{width:100%;margin:2px 0 4px;overflow-x:auto;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border:1px solid var(--line);border-radius:18px;padding:8px 4px}
+  .mmsvg{display:block;height:auto;min-width:640px}
+  .mm-t{font:800 19px/1 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px}
+  .mm-s{font:italic 12px/1 var(--sans,system-ui);fill:#6b6357}
+  .mm-l{font:500 13.5px/1 var(--sans,system-ui);fill:#2b2b2b}
+  .mm-g{cursor:pointer}
+  .mm-g:hover .mm-t{text-decoration:underline}
+  .mmc{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(158deg,#E7473C 0%,#C8382F 100%);border:3px solid #fff;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#fff;cursor:pointer;padding:14px;box-shadow:0 12px 30px rgba(200,56,49,.35)}
+  .mmc-av{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
+  .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:28px;font-weight:700;color:#E7473C}
+  .mmc-name{font-family:var(--serif);font-weight:700;font-size:17px;text-align:center;line-height:1.25;word-break:break-word}
+  .mm-hint2{text-align:center;color:var(--ink-faint);font-size:12px;margin:6px 0 2px}
   /* danh sách đầy đủ các mục tiêu (thẻ nhiều màu) */
   .gcards{margin-top:26px;display:grid;grid-template-columns:1fr;gap:16px}
   @media(min-width:760px){.gcards{grid-template-columns:1fr 1fr}}
@@ -1206,30 +1217,72 @@ function addGoalLink(){
 function removeGoalLink(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoalLink(dayLocked()); }
 function goalCenterTitle(){ return ((GOALS.title||'').trim()) || ((GUSER&&GUSER.name)?GUSER.name:'Mục tiêu của tôi'); }
 function goalAvatar(){ return (GUSER&&GUSER.picture)?GUSER.picture:''; }
-const GTONES=['#B6862B','#3E6B54','#6B54A0','#3E7C9C','#A85543','#245A50','#9C842B','#6E2F5C'];
+const GTONES=['#2E7CD6','#E0473C','#2FA463','#7A5CD0','#E0913C','#159AA8','#C8478B','#5B8C2A'];
 function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
-  const title=escapeHtml(goalCenterTitle());
-  const av=goalAvatar();
-  const avImg=av?`<img src="${av}" class="mm-av" referrerpolicy="no-referrer" alt="">`:`<div class="mm-av mm-av-ph">${escapeHtml((goalCenterTitle().trim()[0]||'?').toUpperCase())}</div>`;
-  let nodes='',lines=''; const cx=50,cy=50,R=37;
-  areas.forEach((a,i)=>{
-    const ang=(-90+i*(360/Math.max(N,1)))*Math.PI/180;
-    const x=+(cx+R*Math.cos(ang)).toFixed(2), y=+(cy+R*Math.sin(ang)).toFixed(2);
-    const col=GTONES[i%GTONES.length];
-    lines+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" style="stroke:${col}"/>`;
-    const cnt=(a.checkins||[]).length;
-    nodes+=`<button class="mm-node" style="left:${x}%;top:${y}%;--ac:${col}" onclick="scrollToGoal('${a.id}')"><span class="mm-dotc" style="background:${col}"></span><span class="mm-node-t">${escapeHtml(a.name||'(mục tiêu)')}</span>${cnt?`<span class="mm-node-c" style="background:${col}">${cnt}</span>`:''}</button>`;
-  });
-  const mm=`<div class="mm">
-      <svg class="mm-lines" viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>
-      ${nodes}
-      <button class="mm-center" onclick="editCenterTitle()" title="Đổi tên">${avImg}<div class="mm-title">${title}</div></button>
-    </div>`;
+  const mm = N ? buildMindmap(areas) : '';
   const cards = N ? '<div class="gcards">'+areas.map((a,i)=>`<div class="gcard2" id="gc_${a.id}" style="--ac:${GTONES[i%GTONES.length]}"><button class="gdel2" title="Xoá mục tiêu" onclick="removeGoalArea('${a.id}')">🗑</button>${goalCardHTML(a)}</div>`).join('')+'</div>'
     : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
   $('goalsList').innerHTML = mm + cards;
   document.querySelectorAll('#goalsView .garea').forEach(gGrow);
+}
+// Mindmap kiểu XMind: nhánh cong nhiều màu, tiêu đề in đậm, "lá" = check-in gạch chân, thẻ đỏ ở giữa.
+function buildMindmap(areas){
+  const F=19, LF=13.5, PAD=44, leafH=30, headerH=64, centerW=200, centerH=162, GAP=26;
+  const idxOf=a=>areas.indexOf(a);
+  const bandOf=a=>Math.max(headerH,(a.checkins||[]).length*leafH+18);
+  const titleW=a=>Math.min(340,(String(a.name||'(mục tiêu)').toUpperCase()).length*F*0.58+12);
+  const leafW=a=>{let m=0;(a.checkins||[]).forEach(c=>{m=Math.max(m,String(c.text||'').length)});return Math.min(210,Math.max(56,Math.min(m,30)*LF*0.55));};
+  const subYear=a=>{const y=String((a.year&&a.year[GYEAR()])||'');return y.length>34?y.slice(0,33)+'…':y;};
+  const bnxOff=148, hubGap=20, leafGap=112;
+  const rext=a=>bnxOff+titleW(a)+hubGap+leafGap+leafW(a)+34;
+  // chia đều hai bên theo chiều cao tích luỹ
+  const Rt=[],Lt=[]; let rh=0,lh=0;
+  areas.forEach(a=>{ const bh=bandOf(a)+GAP; if(rh<=lh){Rt.push(a);rh+=bh;}else{Lt.push(a);lh+=bh;} });
+  const Rextent=Math.max(centerW/2+130, Rt.length?Math.max(...Rt.map(rext)):0);
+  const Lextent=Math.max(centerW/2+130, Lt.length?Math.max(...Lt.map(rext)):0);
+  const cx=Math.round(Lextent+PAD), W=Math.round(cx+Rextent+PAD);
+  const rTot=Rt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Rt.length?GAP:0);
+  const lTot=Lt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Lt.length?GAP:0);
+  const H=Math.round(Math.max(rTot,lTot,centerH)+PAD*2), cy=Math.round(H/2);
+  let paths='',subs='',labels='',leaves='';
+  function place(list,side){
+    const tot=list.reduce((s,a)=>s+bandOf(a)+GAP,0)-(list.length?GAP:0);
+    let y=cy-tot/2; const R=list.length;
+    list.forEach((a,idx)=>{
+      const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+GAP;
+      const col=GTONES[idxOf(a)%GTONES.length];
+      const sx=cx+side*(centerW/2-4);
+      const sy=Math.round(cy+(idx-(R-1)/2)*(centerH*0.42/Math.max(R-1,1)));
+      const bnx=cx+side*bnxOff, tw=titleW(a), hubX=bnx+side*(tw+hubGap);
+      paths+=`<path d="M ${sx} ${sy} C ${sx+side*72} ${sy}, ${bnx-side*72} ${by}, ${bnx} ${by}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"/>`;
+      paths+=`<path d="M ${bnx} ${by} L ${hubX} ${by}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`;
+      const anc=side>0?'start':'end', tx=bnx+side*6;
+      labels+=`<g class="mm-g" onclick="scrollToGoal('${a.id}')">`+
+        `<text x="${tx}" y="${by-6}" text-anchor="${anc}" class="mm-t" fill="${col}">${escapeHtml(String(a.name||'(mục tiêu)').toUpperCase())}</text>`;
+      const sub=subYear(a);
+      if(sub) labels+=`<text x="${tx}" y="${by+15}" text-anchor="${anc}" class="mm-s">🎯 ${escapeHtml(sub)}</text>`;
+      labels+=`</g>`;
+      const cks=(a.checkins||[]).slice().sort((x,z)=>String(z.date).localeCompare(String(x.date)));
+      const Ln=cks.length, lw=leafW(a), leafX=hubX+side*leafGap;
+      cks.forEach((c,k)=>{
+        const ly=Math.round(by+(k-(Ln-1)/2)*leafH);
+        subs+=`<path d="M ${hubX} ${by} C ${hubX+side*42} ${by}, ${leafX-side*42} ${ly}, ${leafX} ${ly}" fill="none" stroke="${col}" stroke-width="2.4" opacity=".8"/>`;
+        const raw=String(c.text||''), txt=escapeHtml(raw.length>30?raw.slice(0,29)+'…':raw);
+        const lanc=side>0?'start':'end';
+        leaves+=`<text x="${leafX+side*7}" y="${ly-2}" text-anchor="${lanc}" class="mm-l">${txt}</text>`;
+        const ux1=side>0?leafX+7:leafX-7-lw, ux2=side>0?leafX+7+lw:leafX-7;
+        leaves+=`<line x1="${ux1}" y1="${ly+3}" x2="${ux2}" y2="${ly+3}" stroke="${col}" stroke-width="2"/>`;
+      });
+    });
+  }
+  place(Rt,1); place(Lt,-1);
+  const av=goalAvatar();
+  const avHtml=av?`<img src="${av}" referrerpolicy="no-referrer" class="mmc-av"/>`:`<div class="mmc-av mmc-ph">${escapeHtml((goalCenterTitle().trim()[0]||'?').toUpperCase())}</div>`;
+  const fo=`<foreignObject x="${cx-centerW/2}" y="${cy-centerH/2}" width="${centerW}" height="${centerH}">`+
+    `<div xmlns="http://www.w3.org/1999/xhtml" class="mmc" onclick="editCenterTitle()" title="Đổi tên">${avHtml}<div class="mmc-name">${escapeHtml(goalCenterTitle())}</div></div>`+
+    `</foreignObject>`;
+  return `<div class="mmwrap"><svg class="mmsvg" viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet">${paths}${subs}${labels}${leaves}${fo}</svg></div>`;
 }
 function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('gc-flash');setTimeout(()=>el.classList.remove('gc-flash'),1000);} }
 function editCenterTitle(){ const cur=goalCenterTitle(); const v=prompt('Đặt tên ở giữa (tên bạn / tên hành trình):', cur); if(v==null)return; GOALS.title=(v||'').trim(); persistGoals(); renderGoals(); }
