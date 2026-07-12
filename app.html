@@ -492,7 +492,9 @@
   .lk-row:hover{background:var(--paper)}
   .lk-row.cur{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,#fff)}
   .lk-ic{flex:none;font-size:18px}
-  .lk-nm{flex:1;min-width:0;font-weight:600}
+  .lk-nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .lk-t{font-weight:700}
+  .lk-s{font-size:12px;color:var(--ink-faint);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lk-ck{flex:none;color:var(--ac);font-weight:900}
   .lk-none{border-left-color:var(--line);color:var(--ink-soft);font-weight:600;justify-content:center}
   .gp-sub{font-weight:700;font-size:12.5px;color:var(--ink-soft);margin:12px 6px 4px;text-transform:none}
@@ -1382,11 +1384,13 @@ function kbOpenLink(colId,cardId){
   const areas=GOALS.areas||[];
   if(!areas.length){ toast('Chưa có mục tiêu nào trong mindmap để link.',true); return; }
   const c=kbCol(colId), cd=c&&(c.cards||[]).find(x=>x.id===cardId);
-  const rows=areas.map((a,i)=>{ const col=GTONES[i%GTONES.length]; const cur=cd&&cd.goalId===a.id; return `<button class="lk-row${cur?' cur':''}" style="--ac:${col}" onclick="kbSetLink('${colId}','${cardId}','${a.id}')"><span class="lk-ic">${goalIcon(a)}</span><span class="lk-nm">${escapeHtml(a.name||'(mục tiêu)')}</span>${cur?'<span class="lk-ck">✓</span>':''}</button>`; }).join('');
-  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:430px"><div class="gp-head"><span>🔗 Link thẻ vào mục tiêu</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body lk-body">${rows}<button class="lk-row lk-none" onclick="kbSetLink('${colId}','${cardId}','')">✕ Bỏ link</button></div></div></div>`;
+  const rows=areas.map((a,i)=>{ const col=GTONES[i%GTONES.length]; const cur=cd&&cd.goalId===a.id;
+    const yr=String((a.year&&a.year[GYEAR()])||''); const sub='🎯 '+GYEAR()+': '+(yr?yr:'(chưa đặt mục tiêu năm)');
+    return `<button class="lk-row${cur?' cur':''}" style="--ac:${col}" onclick="kbSetLink('${colId}','${cardId}','${a.id}')"><span class="lk-ic">${goalIcon(a)}</span><span class="lk-nm"><span class="lk-t">${escapeHtml(a.name||'(mục tiêu)')}</span><span class="lk-s">${escapeHtml(sub)}</span></span>${cur?'<span class="lk-ck">✓</span>':''}</button>`; }).join('');
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:440px"><div class="gp-head"><span>🎯 Link vào mục tiêu ${GYEAR()} của…</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body lk-body">${rows}<button class="lk-row lk-none" onclick="kbSetLink('${colId}','${cardId}','')">✕ Bỏ link</button></div></div></div>`;
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
 }
-function kbSetLink(colId,cardId,goalId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; if(goalId) cd.goalId=goalId; else delete cd.goalId; persistGoals(); closeGoalPosts(); renderGoals(); }
+function kbSetLink(colId,cardId,goalId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; if(goalId){ cd.goalId=goalId; cd.goalYear=GYEAR(); } else { delete cd.goalId; delete cd.goalYear; } persistGoals(); closeGoalPosts(); renderGoals(); }
 function kbToggleDone(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; cd.done=!cd.done; persistGoals(); renderGoals(); }
 let KBDRAG=null, KBCOLDRAG=null;
 function initBoardDnD(){
@@ -1557,7 +1561,7 @@ function showGoalPosts(id){
   const lkRows=links.length?('<div class="gp-sub">🔗 Việc cần làm đã link</div>'+links.map(l=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${escapeHtml(l.col||'')}</span><span class="gp-t${l.done?' gp-done':''}">${escapeHtml(l.text||'')}</span></div>`).join('')):'';
   const body=(total? (ckRows+lkRows) : '<div class="gempty" style="padding:22px 4px;text-align:center">Chưa có gì link vào mục tiêu này.</div>');
   const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box">
-      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} — <b style="color:${col}">${total}</b> link vào</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
+      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} 🎯 ${GYEAR()} — <b style="color:${col}">${total}</b> việc/khoảnh khắc</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
       <div class="gp-body">${body}</div>
     </div></div>`;
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);}
