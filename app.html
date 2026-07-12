@@ -427,6 +427,10 @@
   .gq-ta:focus{border-color:var(--brass)}
   .gq-foot{display:flex;justify-content:space-between;align-items:center;margin-top:15px}
   .gq-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-weight:600}
+  .pk-grid{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:4px}
+  .pk-sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;transition:transform .1s}
+  .pk-sw:hover{transform:scale(1.14)}
+  .pk-sw.on{box-shadow:0 0 0 2px var(--ink);transform:scale(1.1)}
   .gq-kids{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
   .gq-kid{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 11px;font-size:13px;font-weight:600;color:var(--ink)}
   .gq-kid button{background:none;border:none;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;padding:0 2px}
@@ -1414,6 +1418,9 @@ function goalIcon(a){
 }
 function editGoalIcon(id){ const a=findArea(id); if(!a)return; const v=prompt('Nhập 1 emoji cho mục tiêu này (để trống = tự chọn theo tên):', a.icon||''); if(v==null)return; a.icon=(v||'').trim(); persistGoals(); renderGoals(); }
 const GTONES=['#2E7CD6','#E0473C','#2FA463','#7A5CD0','#E0913C','#159AA8','#C8478B','#5B8C2A'];
+// Bảng màu tươi, tích cực — cho người dùng tự chọn
+const PALETTE=['#2E7CD6','#3E9CE0','#4D9DE0','#159AA8','#17B3A3','#22B8A0','#2FA463','#5FB84B','#6A994E','#8DC63F','#C7B42C','#E0B93C','#E0913C','#F0803C','#F4A259','#E86A5C','#E0473C','#E8557F','#D65DB1','#C8478B','#9B5DE5','#7A5CD0','#5C6BC0','#3E7C9C'];
+function goalColor(a,idx){ if(a&&a.color)return a.color; if(idx==null)idx=(GOALS.areas||[]).indexOf(a); return GTONES[(((idx||0)%GTONES.length)+GTONES.length)%GTONES.length]; }
 function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
   const mm = N ? buildMindmap(areas)
@@ -1434,18 +1441,18 @@ function kbCol(id){ return ((GOALS.board&&GOALS.board.cols)||[]).find(c=>c.id===
 function renderBoard(){
   const b=(GOALS.board&&Array.isArray(GOALS.board.cols))?GOALS.board:{cols:[]};
   const cols=b.cols.map((c,i)=>{
-    const kc=GTONES[i%GTONES.length];
+    const kc=c.color||GTONES[i%GTONES.length];
     const chkMode=!!c.check;
     const cards=(c.cards||[]).map(cd=>{
       const chk=chkMode?`<button class="kb-chk${cd.done?' on':''}" title="Đánh dấu hoàn tất" onclick="event.stopPropagation();kbToggleDone('${c.id}','${cd.id}')">✓</button>`:'';
       const la=cd.goalId?(GOALS.areas||[]).find(x=>x.id===cd.goalId):null;
-      const chip=la?`<span class="kb-link" style="--lc:${GTONES[(GOALS.areas||[]).indexOf(la)%GTONES.length]}">${goalIcon(la)} ${escapeHtml(la.name||'mục tiêu')}</span>`:'';
+      const chip=la?`<span class="kb-link" style="--lc:${goalColor(la)}">${goalIcon(la)} ${escapeHtml(la.name||'mục tiêu')}</span>`:'';
       return `<div class="kb-card${cd.done?' done':''}" draggable="true" data-col="${c.id}" data-id="${cd.id}" ondblclick="kbEditCard('${c.id}','${cd.id}')">${chk}<span class="kb-ct">${escapeHtml(cd.text||'')}${chip}</span><span class="kb-acts"><button class="kb-link-btn${la?' on':''}" title="Link vào mục tiêu" onclick="event.stopPropagation();kbOpenLink('${c.id}','${cd.id}')">🔗</button><button class="kb-del" title="Xoá thẻ" onclick="event.stopPropagation();kbDelCard('${c.id}','${cd.id}')">×</button></span></div>`;
     }).join('');
     const total=(c.cards||[]).length, done=(c.cards||[]).filter(x=>x.done).length;
     const countTxt=chkMode?(done+'/'+total):total;
     return `<div class="kb-col" data-col="${c.id}" style="--kc:${kc}">`+
-      `<div class="kb-head"><span class="kb-grip" title="Kéo để đổi thứ tự cột" draggable="true">⠿</span><input class="kb-title" value="${escapeHtml(c.title||'')}" placeholder="Tên cột" onchange="kbEditCol('${c.id}',this.value)"><button class="kb-mode${chkMode?' on':''}" title="Bật/tắt dạng việc cần làm (có ô tích)" onclick="kbToggleMode('${c.id}')">☑</button><span class="kb-count">${countTxt}</span><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div>`+
+      `<div class="kb-head"><span class="kb-grip" title="Kéo để đổi thứ tự cột" draggable="true">⠿</span><input class="kb-title" value="${escapeHtml(c.title||'')}" placeholder="Tên cột" onchange="kbEditCol('${c.id}',this.value)"><button class="kb-mode${chkMode?' on':''}" title="Bật/tắt dạng việc cần làm (có ô tích)" onclick="kbToggleMode('${c.id}')">☑</button><span class="kb-count">${countTxt}</span><button class="kb-colx" title="Đổi màu" onclick="kbColorPick('${c.id}')">🎨</button><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div>`+
       `<div class="kb-body" data-col="${c.id}">${cards}</div>`+
       `<div class="kb-add"><input class="kb-in" placeholder="Thêm thẻ…" onkeydown="if(event.key==='Enter'){event.preventDefault();kbAddCard('${c.id}',this)}"><button class="kb-addb" onclick="kbAddCard('${c.id}',this.previousElementSibling)">＋</button></div>`+
     `</div>`;
@@ -1484,7 +1491,7 @@ function kbOpenLink(colId,cardId){
   const areas=GOALS.areas||[];
   if(!areas.length){ toast('Chưa có mục tiêu nào trong mindmap để link.',true); return; }
   const c=kbCol(colId), cd=c&&(c.cards||[]).find(x=>x.id===cardId);
-  const rows=areas.map((a,i)=>{ const col=GTONES[i%GTONES.length]; const cur=cd&&cd.goalId===a.id;
+  const rows=areas.map((a,i)=>{ const col=goalColor(a,i); const cur=cd&&cd.goalId===a.id;
     const yr=String((a.year&&a.year[GYEAR()])||''); const sub='🎯 '+GYEAR()+': '+(yr?yr:'(chưa đặt mục tiêu năm)');
     return `<button class="lk-row${cur?' cur':''}" style="--ac:${col}" onclick="kbSetLink('${colId}','${cardId}','${a.id}')"><span class="lk-ic">${goalIcon(a)}</span><span class="lk-nm"><span class="lk-t">${escapeHtml(a.name||'(mục tiêu)')}</span><span class="lk-s">${escapeHtml(sub)}</span></span>${cur?'<span class="lk-ck">✓</span>':''}</button>`; }).join('');
   const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:440px"><div class="gp-head"><span>🎯 Link vào mục tiêu ${GYEAR()} của…</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body lk-body">${rows}<button class="lk-row lk-none" onclick="kbSetLink('${colId}','${cardId}','')">✕ Bỏ link</button></div></div></div>`;
@@ -1638,7 +1645,7 @@ function buildMindmap(areas){
     let y=cy-tot/2; const R=list.length;
     list.forEach((a,idx)=>{
       const bh=bandOf(a); const by=Math.round(y+bh/2); y+=bh+GAP;
-      const col=GTONES[idxOf(a)%GTONES.length];
+      const col=goalColor(a,idxOf(a));
       const sx=cx+side*(centerW/2-6);
       // điểm xuất phát trải đều dọc mép thẻ theo thứ tự trên->dưới (tránh chụm & chồng nhánh)
       const spread=Math.min(centerH-34,centerH*0.86);
@@ -1709,7 +1716,7 @@ function buildMindmap(areas){
 function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('gc-flash');setTimeout(()=>el.classList.remove('gc-flash'),1000);} }
 function showGoalPosts(id){
   const a=findArea(id); if(!a)return;
-  const col=GTONES[(GOALS.areas||[]).indexOf(a)%GTONES.length];
+  const col=goalColor(a);
   const p=goalProgress(a.id);
   const doneRows=p.done.length?p.done.map(d=>`<div class="gp-row"><span class="gp-tick" style="background:${col}">✓</span><span class="gp-t">${escapeHtml(d.text||'')}</span><span class="gp-d" style="color:${col}">${d.date?fmtD(d.date):(d.kind==='task'?'đã xong':'')}</span></div>`).join(''):'<div class="gempty" style="padding:8px 6px">— chưa có —</div>';
   const todoRows=p.todo.length?p.todo.map(t=>`<div class="gp-row"><span class="gp-tick empty"></span><span class="gp-t">${escapeHtml(t.text||'')}</span><span class="gp-d faint">${escapeHtml(t.col||'')}</span></div>`).join(''):'<div class="gempty" style="padding:8px 6px">— chưa có —</div>';
@@ -1761,6 +1768,7 @@ function editGoalQuick(id){
         `<div class="gq-ci-add"><input id="gqCiIn" class="gq-kin" placeholder="Hôm nay bạn đã làm gì cho mục tiêu này… (Enter)" onkeydown="if(event.key==='Enter'){event.preventDefault();gqAddCheckin('${a.id}')}"><button class="gbtn sm" onclick="gqAddCheckin('${a.id}')">＋</button></div>`+
         `<div class="gq-ci-list">${cks}</div></div>`+
       `<div class="gq-row"><button class="gq-icon" title="Đổi icon" onclick="gqIconEdit('${a.id}')">${goalIcon(a)}</button><input class="gq-name" id="gqName" value="${escapeHtml(a.name||'')}" placeholder="Tên mục tiêu (Sức khỏe, Sự nghiệp…)"></div>`+
+      `<label class="gq-lab">🎨 Màu nhánh</label><div class="pk-grid">${PALETTE.map(c=>`<button class="pk-sw${goalColor(a).toLowerCase()===c.toLowerCase()?' on':''}" style="background:${c}" title="${c}" onclick="gqSetColor('${a.id}','${c}')"></button>`).join('')}</div>`+
       `<label class="gq-lab">🌟 Ước mơ cả đời</label><textarea class="gq-ta" id="gqDream" placeholder="Bạn mong điều gì cho mảng này…">${escapeHtml(a.dream||'')}</textarea>`+
       `<label class="gq-lab">🎯 Mục tiêu ${yr}</label><textarea class="gq-ta" id="gqYear" placeholder="Năm nay bạn muốn đạt gì…">${escapeHtml(yg)}</textarea>`+
       `<label class="gq-lab">🌿 Nhánh con</label>`+
@@ -1778,6 +1786,13 @@ function gqAddChild(id){ const a=findArea(id); if(!a)return; gqStash(id); const 
 function gqDelChild(id,kid){ const a=findArea(id); if(!a)return; gqStash(id); a.children=(a.children||[]).filter(k=>k.id!==kid); persistGoals(); renderGoals(); editGoalQuick(id); }
 function gqAddCheckin(id){ const a=findArea(id); if(!a)return; gqStash(id); const inp=$('gqCiIn'); const t=(inp?inp.value:'').trim(); if(!t){if(inp)inp.focus();return;} a.checkins=a.checkins||[]; a.checkins.push({id:goalUid(),date:todayISO(),text:t}); persistGoals(); renderGoals(); editGoalQuick(id); toast('Đã check-in ✅'); setTimeout(()=>{const el=$('gqCiIn');if(el)el.focus();},20); }
 function gqDelCheckin(id,cid){ const a=findArea(id); if(!a)return; gqStash(id); a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoals(); editGoalQuick(id); }
+function gqSetColor(id,c){ const a=findArea(id); if(!a)return; gqStash(id); a.color=c; persistGoals(); renderGoals(); editGoalQuick(id); }
+function kbColorPick(colId){ const c=kbCol(colId); if(!c)return; const cur=(c.color||'').toLowerCase();
+  const sw=PALETTE.map(x=>`<button class="pk-sw${cur===x.toLowerCase()?' on':''}" style="background:${x}" title="${x}" onclick="kbSetColor('${colId}','${x}')"></button>`).join('');
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:360px"><div class="gp-head"><span>🎨 Màu cột "${escapeHtml(c.title||'')}"</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body" style="padding:16px"><div class="pk-grid">${sw}</div></div></div></div>`;
+  let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
+}
+function kbSetColor(colId,c){ const col=kbCol(colId); if(!col)return; col.color=c; persistGoals(); closeGoalPosts(); renderGoals(); }
 // Thêm nhánh con ngay trên mindmap (nút ＋ cạnh pill, hiện khi mở khoá)
 function mmAddChild(id){ const a=findArea(id); if(!a)return; const t=prompt('Tên nhánh con:'); if(t==null)return; const v=(t||'').trim(); if(!v)return; a.children=a.children||[]; a.children.push({id:goalUid(),name:v}); persistGoals(); renderGoals(); }
 function mmEditChild(pid,kid){
