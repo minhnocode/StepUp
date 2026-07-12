@@ -399,16 +399,16 @@
   @media(max-width:520px){.mm{max-width:330px}}
   /* mindmap SVG kiểu XMind */
   .mmwrap{width:100%;margin:2px 0 4px;overflow-x:auto;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border:1px solid var(--line);border-radius:18px;padding:8px 4px}
-  .mmsvg{display:block;height:auto;min-width:640px}
-  .mm-t{font:800 19px/1 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px}
-  .mm-s{font:italic 12px/1 var(--sans,system-ui);fill:#6b6357}
-  .mm-l{font:500 13.5px/1 var(--sans,system-ui);fill:#2b2b2b}
+  .mmsvg{display:block;height:auto;min-width:680px}
+  .mm-t{font:800 22px/1 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px}
+  .mm-s{font:italic 13px/1 var(--sans,system-ui);fill:#6b6357}
+  .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
   .mm-g{cursor:pointer}
   .mm-g:hover .mm-t{text-decoration:underline}
   .mmc{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(158deg,#E7473C 0%,#C8382F 100%);border:3px solid #fff;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#fff;cursor:pointer;padding:14px;box-shadow:0 12px 30px rgba(200,56,49,.35)}
-  .mmc-av{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
-  .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:28px;font-weight:700;color:#E7473C}
-  .mmc-name{font-family:var(--serif);font-weight:700;font-size:17px;text-align:center;line-height:1.25;word-break:break-word}
+  .mmc-av{width:74px;height:74px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
+  .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:32px;font-weight:700;color:#E7473C}
+  .mmc-name{font-family:var(--serif);font-weight:700;font-size:19px;text-align:center;line-height:1.25;word-break:break-word}
   .mm-hint2{text-align:center;color:var(--ink-faint);font-size:12px;margin:6px 0 2px}
   /* danh sách đầy đủ các mục tiêu (thẻ nhiều màu) */
   .gcards{margin-top:26px;display:grid;grid-template-columns:1fr;gap:16px}
@@ -1228,14 +1228,14 @@ function renderGoals(){
 }
 // Mindmap kiểu XMind: nhánh cong nhiều màu, tiêu đề in đậm, "lá" = check-in gạch chân, thẻ đỏ ở giữa.
 function buildMindmap(areas){
-  const F=19, LF=13.5, PAD=44, leafH=30, headerH=64, centerW=200, centerH=162, GAP=26;
+  const F=22, LF=15, PAD=56, leafH=36, headerH=132, centerW=214, centerH=196, GAP=52;
   const idxOf=a=>areas.indexOf(a);
   const bandOf=a=>Math.max(headerH,(a.checkins||[]).length*leafH+18);
   const titleW=a=>Math.min(340,(String(a.name||'(mục tiêu)').toUpperCase()).length*F*0.58+12);
   const leafW=a=>{let m=0;(a.checkins||[]).forEach(c=>{m=Math.max(m,String(c.text||'').length)});return Math.min(210,Math.max(56,Math.min(m,30)*LF*0.55));};
   const subYear=a=>{const y=String((a.year&&a.year[GYEAR()])||'');return y.length>34?y.slice(0,33)+'…':y;};
-  const bnxOff=148, hubGap=20, leafGap=112;
-  const rext=a=>bnxOff+titleW(a)+hubGap+leafGap+leafW(a)+34;
+  const bnxOff=172, hubGap=24, leafGap=134;
+  const rext=a=>bnxOff+titleW(a)+hubGap+leafGap+leafW(a)+38;
   // chia đều hai bên theo chiều cao tích luỹ
   const Rt=[],Lt=[]; let rh=0,lh=0;
   areas.forEach(a=>{ const bh=bandOf(a)+GAP; if(rh<=lh){Rt.push(a);rh+=bh;}else{Lt.push(a);lh+=bh;} });
@@ -1244,7 +1244,7 @@ function buildMindmap(areas){
   const cx=Math.round(Lextent+PAD), W=Math.round(cx+Rextent+PAD);
   const rTot=Rt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Rt.length?GAP:0);
   const lTot=Lt.reduce((s,a)=>s+bandOf(a)+GAP,0)-(Lt.length?GAP:0);
-  const H=Math.round(Math.max(rTot,lTot,centerH)+PAD*2), cy=Math.round(H/2);
+  const H=Math.round(Math.max(rTot,lTot,centerH,470)+PAD*2), cy=Math.round(H/2);
   let paths='',subs='',labels='',leaves='';
   function place(list,side){
     const tot=list.reduce((s,a)=>s+bandOf(a)+GAP,0)-(list.length?GAP:0);
