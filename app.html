@@ -430,6 +430,7 @@
   .mml:hover .mml-t{text-decoration:underline}
   .mml-num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;color:#fff;font:800 13px/1 var(--sans,system-ui);vertical-align:2px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
   .mml-num:hover{filter:brightness(1.1)}
+  .mml-num.full{background:#2E9E5B!important}
   /* overlay danh sách post link vào */
   #gpOverlay .gp-ov{position:fixed;inset:0;background:rgba(20,20,25,.5);backdrop-filter:blur(2px);z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}
   #gpOverlay .gp-box{background:var(--card);border-radius:18px;max-width:560px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
@@ -496,8 +497,13 @@
   .lk-s{font-size:12px;color:var(--ink-faint);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lk-ck{flex:none;color:var(--ac);font-weight:900}
   .lk-none{border-left-color:var(--line);color:var(--ink-soft);font-weight:600;justify-content:center}
-  .gp-sub{font-weight:700;font-size:12.5px;color:var(--ink-soft);margin:12px 6px 4px;text-transform:none}
-  .gp-t.gp-done{text-decoration:line-through;color:var(--ink-faint)}
+  .gp-sub{font-weight:800;font-size:12.5px;margin:14px 6px 6px;text-transform:none}
+  .gp-sub.done{color:#2E9E5B}
+  .gp-sub.todo{color:var(--ink-soft)}
+  #gpOverlay .gp-row{align-items:center}
+  .gp-tick{flex:none;width:21px;height:21px;border-radius:6px;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center}
+  .gp-tick.empty{background:transparent;border:2px solid var(--line)}
+  #gpOverlay .gp-d.faint{color:var(--ink-faint)}
   .kb-mode{flex:none;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;opacity:.55;filter:grayscale(1) brightness(3);padding:0 1px}
   .kb-mode.on{opacity:1;filter:none}
   .kb-del{background:none;border:none;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;padding:1px 2px}
@@ -1378,7 +1384,14 @@ function kbAddCard(colId,inp){ const c=kbCol(colId); if(!c)return; const t=(inp?
 function kbDelCard(colId,cardId){ const c=kbCol(colId); if(!c)return; c.cards=(c.cards||[]).filter(x=>x.id!==cardId); persistGoals(); renderGoals(); }
 function kbEditCard(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; const v=prompt('Sửa nội dung thẻ:', cd.text||''); if(v==null)return; cd.text=(v||'').trim(); persistGoals(); renderGoals(); }
 function kbToggleMode(colId){ const c=kbCol(colId); if(!c)return; c.check=!c.check; persistGoals(); renderGoals(); }
-function goalLinkedCards(goalId){ const out=[]; ((GOALS.board&&GOALS.board.cols)||[]).forEach(col=>{(col.cards||[]).forEach(cd=>{ if(cd.goalId===goalId) out.push({col:col.title,text:cd.text,done:!!cd.done}); });}); return out; }
+function goalLinkedCards(goalId){ const out=[]; ((GOALS.board&&GOALS.board.cols)||[]).forEach(col=>{(col.cards||[]).forEach(cd=>{ if(cd.goalId===goalId) out.push({col:col.title,colId:col.id,cardId:cd.id,text:cd.text,done:!!cd.done,doneDate:cd.doneDate||''}); });}); return out; }
+// Gộp tiến độ 1 mục tiêu: đã làm (check-in nhật ký + việc đã tích) vs chưa làm (việc chưa tích)
+function goalProgress(goalId){ const a=findArea(goalId); const done=[],todo=[];
+  ((a&&a.checkins)||[]).forEach(c=>done.push({kind:'journal',date:c.date,text:c.text}));
+  goalLinkedCards(goalId).forEach(l=>{ if(l.done) done.push({kind:'task',col:l.col,text:l.text,date:l.doneDate}); else todo.push({kind:'task',col:l.col,text:l.text}); });
+  done.sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
+  return {done:done,todo:todo,total:done.length+todo.length};
+}
 function kbOpenLink(colId,cardId){
   const areas=GOALS.areas||[];
   if(!areas.length){ toast('Chưa có mục tiêu nào trong mindmap để link.',true); return; }
@@ -1390,7 +1403,7 @@ function kbOpenLink(colId,cardId){
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
 }
 function kbSetLink(colId,cardId,goalId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; if(goalId){ cd.goalId=goalId; cd.goalYear=GYEAR(); } else { delete cd.goalId; delete cd.goalYear; } persistGoals(); closeGoalPosts(); renderGoals(); }
-function kbToggleDone(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; cd.done=!cd.done; persistGoals(); renderGoals(); }
+function kbToggleDone(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; cd.done=!cd.done; if(cd.done)cd.doneDate=todayISO(); else delete cd.doneDate; persistGoals(); renderGoals(); }
 let KBDRAG=null, KBCOLDRAG=null;
 function initBoardDnD(){
   // kéo THẺ giữa các cột
@@ -1516,8 +1529,8 @@ function buildMindmap(areas){
       // nhánh chính: đường cong mượt (điểm điều khiển ở trung điểm) — có id để cập nhật khi kéo cụm
       paths+=`<path id="mmp_${a.id}" d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ey}, ${ex} ${ey}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
-      const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length+goalLinkedCards(a.id).length;
-      const badge=`<span class="mml-num" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem ${cnt} post link vào">${cnt}</span>`;
+      const dr=String(a.dream||''), yr=yrOf(a), prog=goalProgress(a.id), cnt=prog.total, doneN=prog.done.length;
+      const badge=`<span class="mml-num${(cnt&&doneN===cnt)?' full':''}" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Đã làm ${doneN}/${cnt}">${doneN}/${cnt}</span>`;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="mmBranchClick('${a.id}')">`+
         `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span></div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
@@ -1553,15 +1566,16 @@ function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behav
 function showGoalPosts(id){
   const a=findArea(id); if(!a)return;
   const col=GTONES[(GOALS.areas||[]).indexOf(a)%GTONES.length];
-  const cks=(a.checkins||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)));
-  const links=goalLinkedCards(a.id);
-  const total=cks.length+links.length;
-  const ckRows=cks.map(c=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${c.date?fmtD(c.date):''}</span><span class="gp-t">${escapeHtml(c.text||'')}</span><button class="gp-x" title="Bỏ" onclick="unlinkGoalPost('${a.id}','${c.id}')">×</button></div>`).join('');
-  const lkRows=links.length?('<div class="gp-sub">🔗 Việc cần làm đã link</div>'+links.map(l=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${escapeHtml(l.col||'')}</span><span class="gp-t${l.done?' gp-done':''}">${escapeHtml(l.text||'')}</span></div>`).join('')):'';
-  const body=(total? (ckRows+lkRows) : '<div class="gempty" style="padding:22px 4px;text-align:center">Chưa có gì link vào mục tiêu này.</div>');
+  const p=goalProgress(a.id);
+  const doneRows=p.done.length?p.done.map(d=>`<div class="gp-row"><span class="gp-tick" style="background:${col}">✓</span><span class="gp-t">${escapeHtml(d.text||'')}</span><span class="gp-d" style="color:${col}">${d.date?fmtD(d.date):(d.kind==='task'?'đã xong':'')}</span></div>`).join(''):'<div class="gempty" style="padding:8px 6px">— chưa có —</div>';
+  const todoRows=p.todo.length?p.todo.map(t=>`<div class="gp-row"><span class="gp-tick empty"></span><span class="gp-t">${escapeHtml(t.text||'')}</span><span class="gp-d faint">${escapeHtml(t.col||'')}</span></div>`).join(''):'<div class="gempty" style="padding:8px 6px">— chưa có —</div>';
+  const pct=p.total?Math.round(p.done.length/p.total*100):0;
   const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box">
-      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} 🎯 ${GYEAR()} — <b style="color:${col}">${total}</b> việc/khoảnh khắc</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
-      <div class="gp-body">${body}</div>
+      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} 🎯 ${GYEAR()} — <b style="color:${col}">${p.done.length}/${p.total}</b> (${pct}%)</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
+      <div class="gp-body">
+        <div class="gp-sub done">✅ Đã làm (${p.done.length})</div>${doneRows}
+        <div class="gp-sub todo">🕒 Chưa làm (${p.todo.length})</div>${todoRows}
+      </div>
     </div></div>`;
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);}
   el.innerHTML=html;
