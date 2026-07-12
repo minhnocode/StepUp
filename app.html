@@ -427,10 +427,20 @@
   .gq-ta:focus{border-color:var(--brass)}
   .gq-foot{display:flex;justify-content:space-between;align-items:center;margin-top:15px}
   .gq-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-weight:600}
+  .gq-kids{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+  .gq-kid{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 11px;font-size:13px;font-weight:600;color:var(--ink)}
+  .gq-kid button{background:none;border:none;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;padding:0 2px}
+  .gq-kid button:hover{color:var(--danger)}
+  .gq-kempty{font-size:12.5px;color:var(--ink-faint);font-style:italic}
+  .gq-kadd{display:flex;gap:7px}
+  .gq-kin{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13.5px;outline:none;color:inherit}
+  .gq-kin:focus{border-color:var(--brass)}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
   .mmpill-w{display:flex;align-items:center;justify-content:center;height:100%}
   .mmpill{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:#fff;font-weight:800;font-size:14px;line-height:1.2;padding:5px 13px;border-radius:999px;box-shadow:0 3px 9px rgba(0,0,0,.22);cursor:pointer}
   .mmpill:hover{filter:brightness(1.08)}
+  .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
+  .mm-child:hover{text-decoration:underline}
   .mmbranch{cursor:grab}
   .mmbranch.dragging{cursor:grabbing}
   .mmbranch.dragging .mml{opacity:.9}
@@ -1554,9 +1564,9 @@ function buildMindmap(areas){
     if(yr||cnt) h+=nlines('🎯 '+GYEAR()+':  '+yr,CH_B)*B_LH+8;
     return Math.max(h+10,96);
   }
-  const bandOf=a=>labelH(a);
+  const bandOf=a=>Math.max(labelH(a),(a.children||[]).length*30+18);
   const bnxOff=150;
-  const rext=a=>bnxOff+LW+50;
+  const rext=a=>{ const kids=(a.children||[]); let kw=0; kids.forEach(k=>kw=Math.max(kw,String(k.name||'').length)); const kext=kids.length?(72+Math.min(180,kw*7.4)+34):50; return bnxOff+LW+kext; };
   // chia đều hai bên theo chiều cao tích luỹ
   const Rt=[],Lt=[]; let rh=0,lh=0;
   areas.forEach(a=>{ const bh=bandOf(a)+GAP; if(rh<=lh){Rt.push(a);rh+=bh;}else{Lt.push(a);lh+=bh;} });
@@ -1602,9 +1612,22 @@ function buildMindmap(areas){
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
         ((yr||cnt)?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)} ${badge}</div>`:'')+
         `</div>`;
-      // cả cụm (đường kẻ dưới tiêu đề + nhãn) bọc trong <g> kéo-thả được
+      // nhánh con toả ra từ mép ngoài nhãn (giống minh2025)
+      let kidsMk='';
+      const kids=(a.children||[]); const KL=kids.length;
+      if(KL){ const khubX=outX, kX=outX+side*72;
+        kids.forEach((kd,k)=>{ const ky=Math.round(by+(k-(KL-1)/2)*30);
+          kidsMk+=`<path d="M ${khubX} ${by} C ${khubX+side*36} ${by}, ${kX-side*36} ${ky}, ${kX} ${ky}" fill="none" stroke="${col}" stroke-width="2.6" opacity=".85"/>`;
+          const kt=String(kd.name||''); const kanc=side>0?'start':'end'; const kw=Math.min(180,kt.length*7.4);
+          kidsMk+=`<text x="${kX+side*7}" y="${ky-2}" text-anchor="${kanc}" class="mm-child" onclick="editGoalQuick('${a.id}')">${escapeHtml(kt)}</text>`;
+          const ux1=side>0?kX+7:kX-7-kw, ux2=side>0?kX+7+kw:kX-7;
+          kidsMk+=`<line x1="${ux1}" y1="${ky+3}" x2="${ux2}" y2="${ky+3}" stroke="${col}" stroke-width="2"/>`;
+        });
+      }
+      // cả cụm (đường kẻ dưới tiêu đề + nhãn + nhánh con) bọc trong <g> kéo-thả được
       labels+=`<g class="mmbranch" data-id="${a.id}" data-sx="${sx}" data-sy="${sy}" data-bx="${bnx}" data-lyv="${lineY}" data-dx="${off.dx}" data-dy="${off.dy}" transform="translate(${off.dx},${off.dy})">`+
         `<line x1="${bnx}" y1="${lineY}" x2="${outX}" y2="${lineY}" stroke="${col}" stroke-width="4" stroke-linecap="round"/>`+
+        kidsMk+
         `<foreignObject x="${Math.round(foX)}" y="${Math.round(topY)}" width="${LW}" height="${Math.round(lh2)}" style="overflow:visible">${inner}</foreignObject>`+
         `</g>`;
     });
@@ -1687,6 +1710,9 @@ function editGoalQuick(id){
       `<div class="gq-row"><button class="gq-icon" title="Đổi icon" onclick="gqIconEdit('${a.id}')">${goalIcon(a)}</button><input class="gq-name" id="gqName" value="${escapeHtml(a.name||'')}" placeholder="Tên mục tiêu (Sức khỏe, Sự nghiệp…)"></div>`+
       `<label class="gq-lab">🌟 Ước mơ cả đời</label><textarea class="gq-ta" id="gqDream" placeholder="Bạn mong điều gì cho mảng này…">${escapeHtml(a.dream||'')}</textarea>`+
       `<label class="gq-lab">🎯 Mục tiêu ${yr}</label><textarea class="gq-ta" id="gqYear" placeholder="Năm nay bạn muốn đạt gì…">${escapeHtml(yg)}</textarea>`+
+      `<label class="gq-lab">🌿 Nhánh con</label>`+
+      `<div class="gq-kids">${(a.children||[]).map(kd=>`<span class="gq-kid">${escapeHtml(kd.name||'')}<button title="Xoá" onclick="gqDelChild('${a.id}','${kd.id}')">×</button></span>`).join('')||'<span class="gq-kempty">Chưa có nhánh con</span>'}</div>`+
+      `<div class="gq-kadd"><input id="gqKidIn" class="gq-kin" placeholder="Thêm nhánh con rồi Enter…" onkeydown="if(event.key==='Enter'){event.preventDefault();gqAddChild('${a.id}')}"><button class="gbtn sm" onclick="gqAddChild('${a.id}')">＋</button></div>`+
       `<div class="gq-foot"><button class="gq-del" onclick="closeGoalPosts();removeGoalArea('${a.id}')">🗑 Xoá nhánh</button><button class="gbtn" onclick="saveGoalQuick('${a.id}')">Lưu</button></div>`+
     `</div></div></div>`;
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
@@ -1695,6 +1721,8 @@ function editGoalQuick(id){
 function gqStash(id){ const a=findArea(id); if(!a)return; if($('gqName'))a.name=$('gqName').value.trim(); if($('gqDream'))a.dream=$('gqDream').value.trim(); a.year=a.year||{}; if($('gqYear'))a.year[GYEAR()]=$('gqYear').value.trim(); }
 function saveGoalQuick(id){ gqStash(id); persistGoals(); closeGoalPosts(); renderGoals(); }
 function gqIconEdit(id){ const a=findArea(id); if(!a)return; gqStash(id); const v=prompt('Nhập 1 emoji cho mục tiêu (để trống = tự chọn theo tên):', a.icon||''); if(v!=null)a.icon=(v||'').trim(); persistGoals(); editGoalQuick(id); }
+function gqAddChild(id){ const a=findArea(id); if(!a)return; gqStash(id); const inp=$('gqKidIn'); const t=(inp?inp.value:'').trim(); if(!t){if(inp)inp.focus();return;} a.children=a.children||[]; a.children.push({id:goalUid(),name:t}); persistGoals(); renderGoals(); editGoalQuick(id); setTimeout(()=>{const el=$('gqKidIn');if(el)el.focus();},20); }
+function gqDelChild(id,kid){ const a=findArea(id); if(!a)return; gqStash(id); a.children=(a.children||[]).filter(k=>k.id!==kid); persistGoals(); renderGoals(); editGoalQuick(id); }
 function editGoalName(id,val){ const a=findArea(id); if(!a)return; a.name=(val||'').trim(); persistGoals(); renderGoals(); }
 function editGoal(id,key,val){ const a=findArea(id); if(!a)return; a[key]=(val||'').trim(); persistGoals(); }
 function editGoalYear(id,val){ const a=findArea(id); if(!a)return; a.year=a.year||{}; a.year[GYEAR()]=(val||'').trim(); persistGoals(); }
