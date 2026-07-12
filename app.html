@@ -475,14 +475,31 @@
   .kb-card:hover{box-shadow:0 5px 14px color-mix(in srgb, var(--kc) 30%, transparent);transform:translateY(-1px)}
   .kb-card:active{cursor:grabbing}
   .kb-card.dragging{opacity:.35}
-  .kb-ct{flex:1;min-width:0}
+  .kb-cbody{flex:1;min-width:0;display:flex;flex-direction:column}
+  .kb-ct{min-width:0}
+  .kb-link{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;margin-top:7px;max-width:100%;font-size:11.5px;font-weight:700;color:#fff;background:var(--lc);padding:3px 9px;border-radius:999px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kb-acts{position:absolute;top:5px;right:6px;display:flex;gap:1px}
+  .kb-link-btn{background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:.35;padding:1px 2px;filter:grayscale(1)}
+  .kb-link-btn:hover{opacity:1;filter:none}
+  .kb-link-btn.on{opacity:1;filter:none}
   .kb-chk{flex:none;width:21px;height:21px;border-radius:6px;border:2px solid var(--kc);background:#fff;color:transparent;font-size:12px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:background .12s}
   .kb-chk.on{background:var(--kc);color:#fff}
   .kb-card.done{opacity:.6}
   .kb-card.done .kb-ct{text-decoration:line-through;color:var(--ink-faint)}
+  /* menu chọn mục tiêu để link */
+  .lk-body{padding:8px 12px 14px}
+  .lk-row{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-left:4px solid var(--ac,var(--line));border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-size:14px;color:var(--ink)}
+  .lk-row:hover{background:var(--paper)}
+  .lk-row.cur{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,#fff)}
+  .lk-ic{flex:none;font-size:18px}
+  .lk-nm{flex:1;min-width:0;font-weight:600}
+  .lk-ck{flex:none;color:var(--ac);font-weight:900}
+  .lk-none{border-left-color:var(--line);color:var(--ink-soft);font-weight:600;justify-content:center}
+  .gp-sub{font-weight:700;font-size:12.5px;color:var(--ink-soft);margin:12px 6px 4px;text-transform:none}
+  .gp-t.gp-done{text-decoration:line-through;color:var(--ink-faint)}
   .kb-mode{flex:none;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;opacity:.55;filter:grayscale(1) brightness(3);padding:0 1px}
   .kb-mode.on{opacity:1;filter:none}
-  .kb-del{position:absolute;top:5px;right:6px;background:none;border:none;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;padding:0}
+  .kb-del{background:none;border:none;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;padding:1px 2px}
   .kb-del:hover{color:var(--danger)}
   .kb-add{display:flex;gap:6px;padding:8px 10px 11px}
   .kb-in{flex:1;min-width:0;border:1px solid color-mix(in srgb, var(--kc) 30%, var(--line));border-radius:8px;padding:8px 10px;font-size:13px;outline:none;background:#fff;color:inherit}
@@ -1338,7 +1355,9 @@ function renderBoard(){
     const chkMode=!!c.check;
     const cards=(c.cards||[]).map(cd=>{
       const chk=chkMode?`<button class="kb-chk${cd.done?' on':''}" title="Đánh dấu hoàn tất" onclick="event.stopPropagation();kbToggleDone('${c.id}','${cd.id}')">✓</button>`:'';
-      return `<div class="kb-card${cd.done?' done':''}" draggable="true" data-col="${c.id}" data-id="${cd.id}" ondblclick="kbEditCard('${c.id}','${cd.id}')">${chk}<span class="kb-ct">${escapeHtml(cd.text||'')}</span><button class="kb-del" title="Xoá thẻ" onclick="event.stopPropagation();kbDelCard('${c.id}','${cd.id}')">×</button></div>`;
+      const la=cd.goalId?(GOALS.areas||[]).find(x=>x.id===cd.goalId):null;
+      const chip=la?`<span class="kb-link" style="--lc:${GTONES[(GOALS.areas||[]).indexOf(la)%GTONES.length]}">${goalIcon(la)} ${escapeHtml(la.name||'mục tiêu')}</span>`:'';
+      return `<div class="kb-card${cd.done?' done':''}" draggable="true" data-col="${c.id}" data-id="${cd.id}" ondblclick="kbEditCard('${c.id}','${cd.id}')">${chk}<div class="kb-cbody"><span class="kb-ct">${escapeHtml(cd.text||'')}</span>${chip}</div><span class="kb-acts"><button class="kb-link-btn${la?' on':''}" title="Link vào mục tiêu" onclick="event.stopPropagation();kbOpenLink('${c.id}','${cd.id}')">🔗</button><button class="kb-del" title="Xoá thẻ" onclick="event.stopPropagation();kbDelCard('${c.id}','${cd.id}')">×</button></span></div>`;
     }).join('');
     const total=(c.cards||[]).length, done=(c.cards||[]).filter(x=>x.done).length;
     const countTxt=chkMode?(done+'/'+total):total;
@@ -1358,6 +1377,16 @@ function kbAddCard(colId,inp){ const c=kbCol(colId); if(!c)return; const t=(inp?
 function kbDelCard(colId,cardId){ const c=kbCol(colId); if(!c)return; c.cards=(c.cards||[]).filter(x=>x.id!==cardId); persistGoals(); renderGoals(); }
 function kbEditCard(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; const v=prompt('Sửa nội dung thẻ:', cd.text||''); if(v==null)return; cd.text=(v||'').trim(); persistGoals(); renderGoals(); }
 function kbToggleMode(colId){ const c=kbCol(colId); if(!c)return; c.check=!c.check; persistGoals(); renderGoals(); }
+function goalLinkedCards(goalId){ const out=[]; ((GOALS.board&&GOALS.board.cols)||[]).forEach(col=>{(col.cards||[]).forEach(cd=>{ if(cd.goalId===goalId) out.push({col:col.title,text:cd.text,done:!!cd.done}); });}); return out; }
+function kbOpenLink(colId,cardId){
+  const areas=GOALS.areas||[];
+  if(!areas.length){ toast('Chưa có mục tiêu nào trong mindmap để link.',true); return; }
+  const c=kbCol(colId), cd=c&&(c.cards||[]).find(x=>x.id===cardId);
+  const rows=areas.map((a,i)=>{ const col=GTONES[i%GTONES.length]; const cur=cd&&cd.goalId===a.id; return `<button class="lk-row${cur?' cur':''}" style="--ac:${col}" onclick="kbSetLink('${colId}','${cardId}','${a.id}')"><span class="lk-ic">${goalIcon(a)}</span><span class="lk-nm">${escapeHtml(a.name||'(mục tiêu)')}</span>${cur?'<span class="lk-ck">✓</span>':''}</button>`; }).join('');
+  const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box" style="max-width:430px"><div class="gp-head"><span>🔗 Link thẻ vào mục tiêu</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div><div class="gp-body lk-body">${rows}<button class="lk-row lk-none" onclick="kbSetLink('${colId}','${cardId}','')">✕ Bỏ link</button></div></div></div>`;
+  let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);} el.innerHTML=html;
+}
+function kbSetLink(colId,cardId,goalId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; if(goalId) cd.goalId=goalId; else delete cd.goalId; persistGoals(); closeGoalPosts(); renderGoals(); }
 function kbToggleDone(colId,cardId){ const c=kbCol(colId); if(!c)return; const cd=(c.cards||[]).find(x=>x.id===cardId); if(!cd)return; cd.done=!cd.done; persistGoals(); renderGoals(); }
 let KBDRAG=null, KBCOLDRAG=null;
 function initBoardDnD(){
@@ -1484,7 +1513,7 @@ function buildMindmap(areas){
       // nhánh chính: đường cong mượt (điểm điều khiển ở trung điểm) — có id để cập nhật khi kéo cụm
       paths+=`<path id="mmp_${a.id}" d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ey}, ${ex} ${ey}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
-      const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
+      const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length+goalLinkedCards(a.id).length;
       const badge=`<span class="mml-num" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem ${cnt} post link vào">${cnt}</span>`;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="mmBranchClick('${a.id}')">`+
         `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span></div>`+
@@ -1522,10 +1551,14 @@ function showGoalPosts(id){
   const a=findArea(id); if(!a)return;
   const col=GTONES[(GOALS.areas||[]).indexOf(a)%GTONES.length];
   const cks=(a.checkins||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)));
-  const rows=cks.length?cks.map(c=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${c.date?fmtD(c.date):''}</span><span class="gp-t">${escapeHtml(c.text||'')}</span><button class="gp-x" title="Bỏ link" onclick="unlinkGoalPost('${a.id}','${c.id}')">×</button></div>`).join(''):'<div class="gempty" style="padding:22px 4px;text-align:center">Chưa có post nào link vào mục tiêu này.</div>';
+  const links=goalLinkedCards(a.id);
+  const total=cks.length+links.length;
+  const ckRows=cks.map(c=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${c.date?fmtD(c.date):''}</span><span class="gp-t">${escapeHtml(c.text||'')}</span><button class="gp-x" title="Bỏ" onclick="unlinkGoalPost('${a.id}','${c.id}')">×</button></div>`).join('');
+  const lkRows=links.length?('<div class="gp-sub">🔗 Việc cần làm đã link</div>'+links.map(l=>`<div class="gp-row"><span class="gp-d" style="color:${col}">${escapeHtml(l.col||'')}</span><span class="gp-t${l.done?' gp-done':''}">${escapeHtml(l.text||'')}</span></div>`).join('')):'';
+  const body=(total? (ckRows+lkRows) : '<div class="gempty" style="padding:22px 4px;text-align:center">Chưa có gì link vào mục tiêu này.</div>');
   const html=`<div class="gp-ov" onclick="if(event.target===this)closeGoalPosts()"><div class="gp-box">
-      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} — <b style="color:${col}">${cks.length}</b> post link vào</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
-      <div class="gp-body">${rows}</div>
+      <div class="gp-head" style="border-color:${col}"><span>${goalIcon(a)} ${escapeHtml(a.name||'Mục tiêu')} — <b style="color:${col}">${total}</b> link vào</span><button class="gp-close" onclick="closeGoalPosts()">✕</button></div>
+      <div class="gp-body">${body}</div>
     </div></div>`;
   let el=$('gpOverlay'); if(!el){el=document.createElement('div');el.id='gpOverlay';document.body.appendChild(el);}
   el.innerHTML=html;
