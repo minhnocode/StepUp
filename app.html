@@ -396,8 +396,20 @@
   .mm-node:hover{border-color:var(--brass);color:var(--brass)}
   .mm-node-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:88px}
   .mm-node-c{flex:none;background:var(--brass);color:#fff;font-size:11px;font-weight:700;border-radius:999px;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
-  .mm-hint{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:14px}
-  @media(max-width:520px){.mm{max-width:330px}.mm-node{font-size:12px;padding:6px 10px;max-width:104px}.mm-node-t{max-width:70px}.mm-title{font-size:11px}}
+  .mm-node{border-left:4px solid var(--ac,var(--line))}
+  .mm-dotc{width:8px;height:8px;border-radius:50%;flex:none}
+  @media(max-width:520px){.mm{max-width:330px}.mm-node{font-size:12px;padding:6px 10px;max-width:104px}.mm-node-t{max-width:64px}.mm-title{font-size:11px}}
+  /* danh sách đầy đủ các mục tiêu (thẻ nhiều màu) */
+  .gcards{margin-top:26px;display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:760px){.gcards{grid-template-columns:1fr 1fr}}
+  .gcard2{position:relative;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--ac);border-radius:16px;padding:16px 17px 15px;box-shadow:var(--shadow)}
+  .gcard2 .glab{color:var(--ac)}
+  .gcard2 .gname{font-weight:700;font-size:16px;border-color:transparent;background:transparent;padding-left:0;padding-right:34px}
+  .gcard2 .gname:focus{background:#fff;border-color:var(--brass);padding-left:12px}
+  .gdel2{position:absolute;top:12px;right:12px;background:none;border:none;font-size:15px;cursor:pointer;opacity:.5;line-height:1}
+  .gdel2:hover{opacity:1}
+  .gc-flash{animation:gcflash 1s ease}
+  @keyframes gcflash{0%{box-shadow:0 0 0 3px var(--ac)}100%{box-shadow:var(--shadow)}}
   /* gắn tiến độ vào mục tiêu (trong thẻ, dưới Thành tựu) */
   .gl-wrap{margin-top:6px}
   .gl{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 11px}
@@ -591,14 +603,6 @@
   </div>
 </div>
 
-<!-- Chi tiết 1 mục tiêu -->
-<div id="goalModal" class="modal-bg" onclick="if(event.target===this)closeGoalDetail()">
-  <div class="modal">
-    <div class="modal-h"><h3 class="serif">🎯 Mục tiêu</h3></div>
-    <div class="modal-b" id="goalModalBody"></div>
-    <div class="modal-f"><button class="btn btn-danger" onclick="removeGoalArea(currentGoalId)">Xoá</button><button class="btn btn-primary" style="margin-left:auto" onclick="closeGoalDetail()">Xong</button></div>
-  </div>
-</div>
 
 <!-- Connection modal -->
 <div id="connModal" class="modal-bg" onclick="if(event.target===this)closeModal('connModal')">
@@ -1202,7 +1206,7 @@ function addGoalLink(){
 function removeGoalLink(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoalLink(dayLocked()); }
 function goalCenterTitle(){ return ((GOALS.title||'').trim()) || ((GUSER&&GUSER.name)?GUSER.name:'Mục tiêu của tôi'); }
 function goalAvatar(){ return (GUSER&&GUSER.picture)?GUSER.picture:''; }
-let currentGoalId=null;
+const GTONES=['#B6862B','#3E6B54','#6B54A0','#3E7C9C','#A85543','#245A50','#9C842B','#6E2F5C'];
 function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
   const title=escapeHtml(goalCenterTitle());
@@ -1212,18 +1216,22 @@ function renderGoals(){
   areas.forEach((a,i)=>{
     const ang=(-90+i*(360/Math.max(N,1)))*Math.PI/180;
     const x=+(cx+R*Math.cos(ang)).toFixed(2), y=+(cy+R*Math.sin(ang)).toFixed(2);
-    lines+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"/>`;
+    const col=GTONES[i%GTONES.length];
+    lines+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" style="stroke:${col}"/>`;
     const cnt=(a.checkins||[]).length;
-    nodes+=`<button class="mm-node" style="left:${x}%;top:${y}%" onclick="openGoalDetail('${a.id}')"><span class="mm-node-t">${escapeHtml(a.name||'(mục tiêu)')}</span>${cnt?`<span class="mm-node-c">${cnt}</span>`:''}</button>`;
+    nodes+=`<button class="mm-node" style="left:${x}%;top:${y}%;--ac:${col}" onclick="scrollToGoal('${a.id}')"><span class="mm-dotc" style="background:${col}"></span><span class="mm-node-t">${escapeHtml(a.name||'(mục tiêu)')}</span>${cnt?`<span class="mm-node-c" style="background:${col}">${cnt}</span>`:''}</button>`;
   });
-  $('goalsList').innerHTML=`
-    <div class="mm">
+  const mm=`<div class="mm">
       <svg class="mm-lines" viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>
       ${nodes}
       <button class="mm-center" onclick="editCenterTitle()" title="Đổi tên">${avImg}<div class="mm-title">${title}</div></button>
-    </div>
-    ${N?'<div class="mm-hint">Bấm một nhánh để xem/sửa · bấm vòng tròn giữa để đổi tên</div>':'<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>'}`;
+    </div>`;
+  const cards = N ? '<div class="gcards">'+areas.map((a,i)=>`<div class="gcard2" id="gc_${a.id}" style="--ac:${GTONES[i%GTONES.length]}"><button class="gdel2" title="Xoá mục tiêu" onclick="removeGoalArea('${a.id}')">🗑</button>${goalCardHTML(a)}</div>`).join('')+'</div>'
+    : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
+  $('goalsList').innerHTML = mm + cards;
+  document.querySelectorAll('#goalsView .garea').forEach(gGrow);
 }
+function scrollToGoal(id){ const el=$('gc_'+id); if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('gc-flash');setTimeout(()=>el.classList.remove('gc-flash'),1000);} }
 function editCenterTitle(){ const cur=goalCenterTitle(); const v=prompt('Đặt tên ở giữa (tên bạn / tên hành trình):', cur); if(v==null)return; GOALS.title=(v||'').trim(); persistGoals(); renderGoals(); }
 function goalCardHTML(a){
   const yr=GYEAR(); const yg=(a.year&&a.year[yr])||'';
@@ -1238,16 +1246,13 @@ function goalCardHTML(a){
     <div class="gck-list">${cksHtml}</div>
     <div class="gck-add"><input class="ginput gck-in" id="gcin_${a.id}" placeholder="Tiến độ hôm nay…" onkeydown="if(event.key==='Enter'){event.preventDefault();addCheckin('${a.id}')}"><button class="gbtn sm" onclick="addCheckin('${a.id}')">＋</button></div>`;
 }
-function renderGoalModal(id){ const a=findArea(id); if(!a)return; $('goalModalBody').innerHTML=goalCardHTML(a); document.querySelectorAll('#goalModalBody .garea').forEach(gGrow); }
-function openGoalDetail(id){ if(!findArea(id))return; currentGoalId=id; renderGoalModal(id); $('goalModal').classList.add('open'); }
-function closeGoalDetail(){ closeModal('goalModal'); renderGoals(); }
-function addGoalArea(){ GOALS.areas=GOALS.areas||[]; const id=goalUid(); GOALS.areas.push({id,name:'',dream:'',year:{},checkins:[]}); persistGoals(); renderGoals(); openGoalDetail(id); }
-function removeGoalArea(id){ if(!id)return; if(!confirm('Xoá mục tiêu này (cả check-in)?'))return; GOALS.areas=(GOALS.areas||[]).filter(a=>a.id!==id); persistGoals(); closeModal('goalModal'); renderGoals(); }
+function addGoalArea(){ GOALS.areas=GOALS.areas||[]; const id=goalUid(); GOALS.areas.push({id,name:'',dream:'',year:{},checkins:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const el=$('gc_'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const inp=el.querySelector('.gname');if(inp)inp.focus();}},60); }
+function removeGoalArea(id){ if(!id)return; if(!confirm('Xoá mục tiêu này (cả check-in)?'))return; GOALS.areas=(GOALS.areas||[]).filter(a=>a.id!==id); persistGoals(); renderGoals(); }
 function editGoalName(id,val){ const a=findArea(id); if(!a)return; a.name=(val||'').trim(); persistGoals(); renderGoals(); }
 function editGoal(id,key,val){ const a=findArea(id); if(!a)return; a[key]=(val||'').trim(); persistGoals(); }
 function editGoalYear(id,val){ const a=findArea(id); if(!a)return; a.year=a.year||{}; a.year[GYEAR()]=(val||'').trim(); persistGoals(); }
-function addCheckin(id){ const a=findArea(id); if(!a)return; const inp=$('gcin_'+id); const t=(inp?inp.value:'').trim(); if(!t){toast('Nhập tiến độ check-in.',true);if(inp)inp.focus();return} a.checkins=a.checkins||[]; a.checkins.push({id:goalUid(),date:todayISO(),text:t}); persistGoals(); renderGoalModal(id); renderGoals(); }
-function removeCheckin(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoalModal(aid); renderGoals(); }
+function addCheckin(id){ const a=findArea(id); if(!a)return; const inp=$('gcin_'+id); const t=(inp?inp.value:'').trim(); if(!t){toast('Nhập tiến độ check-in.',true);if(inp)inp.focus();return} a.checkins=a.checkins||[]; a.checkins.push({id:goalUid(),date:todayISO(),text:t}); persistGoals(); renderGoals(); setTimeout(()=>{const el=$('gcin_'+id);if(el)el.focus()},50); }
+function removeCheckin(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoals(); }
 function reviewAll(){
   const areas=(GOALS.areas||[]); if(!areas.length){toast('Chưa có mục tiêu để review.',true);return}
   $('reviewBody').innerHTML=areas.map(a=>`<div class="rv-row"><div class="rv-name">${escapeHtml(a.name||'(chưa đặt tên)')}</div><input class="ginput" id="rv_${a.id}" placeholder="Tiến độ hôm nay…"></div>`).join('');
