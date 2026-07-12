@@ -439,6 +439,9 @@
   .mmpill-w{display:flex;align-items:center;justify-content:center;height:100%}
   .mmpill{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:#fff;font-weight:800;font-size:14px;line-height:1.2;padding:5px 13px;border-radius:999px;box-shadow:0 3px 9px rgba(0,0,0,.22);cursor:pointer}
   .mmpill:hover{filter:brightness(1.08)}
+  .mm-addkid{margin-left:6px;flex:none;width:26px;height:26px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:15px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center}
+  .mm-addkid:hover{filter:brightness(1.15)}
+  .mmwrap.locked .mm-addkid{display:none}
   .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
   .mm-child:hover{text-decoration:underline}
   .mmbranch{cursor:grab}
@@ -1510,7 +1513,7 @@ function initMindmapPanZoom(){
   if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmRecenter(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
-  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmadd')||e.target.closest('.mmbranch')||e.target.closest('.mmpill')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
+  w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmadd')||e.target.closest('.mmbranch')||e.target.closest('.mmpill-w')||e.target.closest('.mmdesc')||e.target.closest('.mmc')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
   w.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY; moved+=Math.abs(dx)+Math.abs(dy); MMV.x+=dx;MMV.y+=dy; mmApply(); });
   const up=()=>{ if(!drag)return; drag=false; w.classList.remove('grabbing'); };
   w.addEventListener('pointerup',up); w.addEventListener('pointercancel',up); w.addEventListener('pointerleave',up);
@@ -1601,8 +1604,8 @@ function buildMindmap(areas){
       { const tt=0.42, mt=1-tt;
         const pbx=mt*mt*mt*sx+3*mt*mt*tt*midX+3*mt*tt*tt*midX+tt*tt*tt*ex;
         const pby=mt*mt*mt*sy+3*mt*mt*tt*sy+3*mt*tt*tt*ey+tt*tt*tt*ey;
-        const nmR=String(a.name||'(mục tiêu)'); const pw=Math.min(250,nmR.length*10+80), ph=34;
-        labels+=`<foreignObject x="${Math.round(pbx-pw/2)}" y="${Math.round(pby-ph/2)}" width="${pw}" height="${ph}" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" class="mmpill-w"><span class="mmpill" style="background:${col}" onclick="mmBranchClick('${a.id}')">${goalIcon(a)} ${escapeHtml(nmR)}</span></div></foreignObject>`;
+        const nmR=String(a.name||'(mục tiêu)'); const pw=Math.min(250,nmR.length*10+80)+42, ph=36;
+        labels+=`<foreignObject x="${Math.round(pbx-pw/2)}" y="${Math.round(pby-ph/2)}" width="${pw}" height="${ph}" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" class="mmpill-w"><span class="mmpill" style="background:${col}" onclick="mmBranchClick('${a.id}')">${goalIcon(a)} ${escapeHtml(nmR)}</span><button class="mm-addkid" style="background:${col}" title="Thêm nhánh con" onclick="event.stopPropagation();mmAddChild('${a.id}')">＋</button></div></foreignObject>`;
       }
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
       const dr=String(a.dream||''), yr=yrOf(a), prog=goalProgress(a.id), cnt=prog.total, doneN=prog.done.length;
@@ -1723,6 +1726,8 @@ function saveGoalQuick(id){ gqStash(id); persistGoals(); closeGoalPosts(); rende
 function gqIconEdit(id){ const a=findArea(id); if(!a)return; gqStash(id); const v=prompt('Nhập 1 emoji cho mục tiêu (để trống = tự chọn theo tên):', a.icon||''); if(v!=null)a.icon=(v||'').trim(); persistGoals(); editGoalQuick(id); }
 function gqAddChild(id){ const a=findArea(id); if(!a)return; gqStash(id); const inp=$('gqKidIn'); const t=(inp?inp.value:'').trim(); if(!t){if(inp)inp.focus();return;} a.children=a.children||[]; a.children.push({id:goalUid(),name:t}); persistGoals(); renderGoals(); editGoalQuick(id); setTimeout(()=>{const el=$('gqKidIn');if(el)el.focus();},20); }
 function gqDelChild(id,kid){ const a=findArea(id); if(!a)return; gqStash(id); a.children=(a.children||[]).filter(k=>k.id!==kid); persistGoals(); renderGoals(); editGoalQuick(id); }
+// Thêm nhánh con ngay trên mindmap (nút ＋ cạnh pill, hiện khi mở khoá)
+function mmAddChild(id){ const a=findArea(id); if(!a)return; const t=prompt('Tên nhánh con:'); if(t==null)return; const v=(t||'').trim(); if(!v)return; a.children=a.children||[]; a.children.push({id:goalUid(),name:v}); persistGoals(); renderGoals(); }
 function editGoalName(id,val){ const a=findArea(id); if(!a)return; a.name=(val||'').trim(); persistGoals(); renderGoals(); }
 function editGoal(id,key,val){ const a=findArea(id); if(!a)return; a[key]=(val||'').trim(); persistGoals(); }
 function editGoalYear(id,val){ const a=findArea(id); if(!a)return; a.year=a.year||{}; a.year[GYEAR()]=(val||'').trim(); persistGoals(); }
