@@ -539,15 +539,16 @@
   .kb-sc-chips{display:flex;flex-wrap:wrap;gap:5px}
   .kb-sempty{color:var(--ink-faint);font-size:12.5px;padding:10px 4px;line-height:1.5}
   .kb-col{flex:0 0 300px;max-width:300px;border-radius:16px;display:flex;flex-direction:column;max-height:76vh;overflow:hidden;background:color-mix(in srgb, var(--kc) 8%, #fff);border:1px solid color-mix(in srgb, var(--kc) 30%, var(--line));box-shadow:0 6px 18px color-mix(in srgb, var(--kc) 22%, transparent)}
-  .kb-head{display:flex;align-items:center;gap:6px;padding:11px 10px;background:var(--kc)}
-  .kb-grip{flex:none;cursor:grab;color:rgba(255,255,255,.85);font-size:15px;line-height:1;padding:2px 2px;user-select:none}
+  .kb-head{display:flex;align-items:flex-start;gap:6px;padding:9px 10px;background:var(--kc)}
+  .kb-hact{flex:none;display:flex;align-items:center;gap:4px;padding-top:2px}
+  .kb-grip{flex:none;cursor:grab;color:rgba(255,255,255,.85);font-size:15px;line-height:1;padding:4px 2px;user-select:none}
   .kb-grip:active{cursor:grabbing}
   .kb-col.coldragging{opacity:.45}
   .kb-col.col-before{box-shadow:-5px 0 0 0 var(--ink)}
   .kb-col.col-after{box-shadow:5px 0 0 0 var(--ink)}
-  .kb-title{flex:1;min-width:0;font-weight:800;font-size:15px;border:1px solid transparent;background:transparent;border-radius:8px;padding:5px 7px;color:#fff;letter-spacing:.2px}
-  .kb-title::placeholder{color:rgba(255,255,255,.7)}
-  .kb-title:focus{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.7);outline:none;color:#fff}
+  .kb-title{flex:1;min-width:0;font-weight:800;font-size:14.5px;border:1px solid transparent;background:transparent;border-radius:8px;padding:5px 7px;color:#fff;letter-spacing:.2px;line-height:1.32;word-break:break-word;white-space:normal;outline:none;cursor:text}
+  .kb-title:focus{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.6)}
+  .kb-title:empty:before{content:attr(data-ph);color:rgba(255,255,255,.6)}
   .kb-count{flex:none;font-size:12px;font-weight:800;color:#fff;background:rgba(255,255,255,.28);border-radius:999px;min-width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
   .kb-colx{flex:none;background:none;border:none;cursor:pointer;font-size:13px;opacity:.85;line-height:1;filter:grayscale(1) brightness(3)}
   .kb-colx:hover{opacity:1}
@@ -1464,7 +1465,7 @@ function renderBoard(){
     const total=(c.cards||[]).length, done=(c.cards||[]).filter(x=>x.done).length;
     const countTxt=chkMode?(done+'/'+total):total;
     return `<div class="kb-col" data-col="${c.id}" style="--kc:${kc}">`+
-      `<div class="kb-head"><span class="kb-grip" title="Kéo để đổi thứ tự cột" draggable="true">⠿</span><input class="kb-title" value="${escapeHtml(c.title||'')}" placeholder="Tên cột" onchange="kbEditCol('${c.id}',this.value)"><button class="kb-mode${chkMode?' on':''}" title="Bật/tắt dạng việc cần làm (có ô tích)" onclick="kbToggleMode('${c.id}')">☑</button><span class="kb-count">${countTxt}</span><button class="kb-colx" title="Đổi màu" onclick="kbColorPick('${c.id}')">🎨</button><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div>`+
+      `<div class="kb-head"><span class="kb-grip" title="Kéo để đổi thứ tự cột" draggable="true">⠿</span><div class="kb-title" contenteditable="true" spellcheck="false" data-ph="Tên cột" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="kbEditCol('${c.id}',this.innerText)">${escapeHtml(c.title||'')}</div><div class="kb-hact"><button class="kb-mode${chkMode?' on':''}" title="Bật/tắt dạng việc cần làm (có ô tích)" onclick="kbToggleMode('${c.id}')">☑</button><span class="kb-count">${countTxt}</span><button class="kb-colx" title="Đổi màu" onclick="kbColorPick('${c.id}')">🎨</button><button class="kb-colx" title="Xoá cột" onclick="kbDelCol('${c.id}')">🗑</button></div></div>`+
       `<div class="kb-body" data-col="${c.id}">${cards}</div>`+
       `<div class="kb-add"><input class="kb-in" placeholder="Thêm thẻ…" onkeydown="if(event.key==='Enter'){event.preventDefault();kbAddCard('${c.id}',this)}"><button class="kb-addb" onclick="kbAddCard('${c.id}',this.previousElementSibling)">＋</button></div>`+
     `</div>`;
@@ -1484,7 +1485,7 @@ function gratColumnHTML(){
   const cards=persons.length?persons.map(p=>`<div class="kb-scard"><div class="kb-sc-t">🙏 ${escapeHtml(p)}</div><div class="kb-sc-chips">${gmap[p].map((it,j)=>`<span class="gchip c${j%8}" onclick="openDayISO('${it.date}')">${escapeHtml(it.text)||'(trống)'}<span class="gd">${it.date.slice(8,10)}/${it.date.slice(5,7)}</span></span>`).join('')}</div></div>`).join(''):'<div class="kb-sempty">Chưa có — ghi ở nhật ký hôm nay.</div>';
   return `<div class="kb-col kb-scol" style="--kc:#159AA8"><div class="kb-head"><div class="kb-stitle">🙏 Biết ơn</div><span class="kb-count">${persons.length}</span></div><div class="kb-sbody">${cards}</div></div>`;
 }
-function kbAddCol(){ const b=kbBoard(); b.cols.push({id:goalUid(),title:'Cột mới',cards:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const els=document.querySelectorAll('.kb-title');const el=els[els.length-1];if(el){el.focus();el.select();}},40); }
+function kbAddCol(){ const b=kbBoard(); b.cols.push({id:goalUid(),title:'Cột mới',cards:[]}); persistGoals(); renderGoals(); setTimeout(()=>{const els=document.querySelectorAll('.kb-title');const el=els[els.length-1];if(el){el.focus();try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);}catch(_){}}},40); }
 function kbDelCol(id){ const c=kbCol(id); if(!c)return; if((c.cards||[]).length && !confirm('Xoá cột này (cả '+c.cards.length+' thẻ)?'))return; const b=kbBoard(); b.cols=b.cols.filter(x=>x.id!==id); persistGoals(); renderGoals(); }
 function kbEditCol(id,v){ const c=kbCol(id); if(c){c.title=(v||'').trim();persistGoals();} }
 function kbAddCard(colId,inp){ const c=kbCol(colId); if(!c)return; const t=(inp?inp.value:'').trim(); if(!t){if(inp)inp.focus();return;} c.cards=c.cards||[]; c.cards.push({id:goalUid(),text:t}); persistGoals(); renderGoals(); setTimeout(()=>{const el=document.querySelector('.kb-col[data-col="'+colId+'"] .kb-in');if(el)el.focus();},40); }
