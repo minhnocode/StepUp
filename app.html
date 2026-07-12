@@ -442,6 +442,9 @@
   .mm-addkid{margin-left:6px;flex:none;width:26px;height:26px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:15px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center}
   .mm-addkid:hover{filter:brightness(1.15)}
   .mmwrap.locked .mm-addkid{display:none}
+  .mm-addkid2{margin-left:8px;flex:none;width:23px;height:23px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:13px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+  .mm-addkid2:hover{filter:brightness(1.15)}
+  .mmwrap.locked .mm-addkid2{display:none}
   .mm-child{font:600 13px/1 var(--sans,system-ui);fill:#333;cursor:pointer}
   .mm-child:hover{text-decoration:underline}
   .mmbranch{cursor:grab}
@@ -1522,7 +1525,7 @@ function initMindmapPanZoom(){
   w.querySelectorAll('.mmbranch').forEach(g=>{
     g.addEventListener('pointerdown',e=>{
       if(MMLOCK)return; // khoá thì không kéo cụm (click vẫn cuộn tới thẻ)
-      if(e.target.closest&&e.target.closest('.mml-num'))return; // bấm badge số thì mở danh sách, không kéo
+      if(e.target.closest&&(e.target.closest('.mml-num')||e.target.closest('.mm-addkid2')))return; // bấm badge / nút thêm nhánh con thì không kéo
       e.stopPropagation(); e.preventDefault();
       const id=g.dataset.id, sx=+g.dataset.sx, sy=+g.dataset.sy, bx=+g.dataset.bx, lyv=+g.dataset.lyv;
       const path=$('mmp_'+id);
@@ -1572,7 +1575,11 @@ function buildMindmap(areas){
   const rext=a=>{ const kids=(a.children||[]); let kw=0; kids.forEach(k=>kw=Math.max(kw,String(k.name||'').length)); const kext=kids.length?(72+Math.min(180,kw*7.4)+34):50; return bnxOff+LW+kext; };
   // chia đều hai bên theo chiều cao tích luỹ
   const Rt=[],Lt=[]; let rh=0,lh=0;
-  areas.forEach(a=>{ const bh=bandOf(a)+GAP; if(rh<=lh){Rt.push(a);rh+=bh;}else{Lt.push(a);lh+=bh;} });
+  areas.forEach(a=>{ const bh=bandOf(a)+GAP;   // cân bằng SỐ LƯỢNG trước, rồi tới chiều cao
+    if(Rt.length<Lt.length){Rt.push(a);rh+=bh;}
+    else if(Lt.length<Rt.length){Lt.push(a);lh+=bh;}
+    else if(rh<=lh){Rt.push(a);rh+=bh;}
+    else {Lt.push(a);lh+=bh;} });
   const Rextent=Math.max(centerW/2+130, Rt.length?Math.max(...Rt.map(rext)):0);
   const Lextent=Math.max(centerW/2+130, Lt.length?Math.max(...Lt.map(rext)):0);
   const cx=Math.round(Lextent+PAD), W=Math.round(cx+Rextent+PAD);
@@ -1600,27 +1607,20 @@ function buildMindmap(areas){
       const ex=bnx+off.dx, ey=lineY+off.dy, midX=Math.round((sx+ex)/2);
       // nhánh chính: đường cong mượt (điểm điều khiển ở trung điểm) — có id để cập nhật khi kéo cụm
       paths+=`<path id="mmp_${a.id}" d="M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ey}, ${ex} ${ey}" fill="none" stroke="${col}" stroke-width="6.5" stroke-linecap="round"/>`;
-      // nhãn pill tên nhánh đặt trên đường nối, gần thẻ giữa (giống minh2025)
-      { const tt=0.42, mt=1-tt;
-        const pbx=mt*mt*mt*sx+3*mt*mt*tt*midX+3*mt*tt*tt*midX+tt*tt*tt*ex;
-        const pby=mt*mt*mt*sy+3*mt*mt*tt*sy+3*mt*tt*tt*ey+tt*tt*tt*ey;
-        const nmR=String(a.name||'(mục tiêu)'); const pw=Math.min(250,nmR.length*10+80)+42, ph=36;
-        labels+=`<foreignObject x="${Math.round(pbx-pw/2)}" y="${Math.round(pby-ph/2)}" width="${pw}" height="${ph}" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" class="mmpill-w"><span class="mmpill" style="background:${col}" onclick="mmBranchClick('${a.id}')">${goalIcon(a)} ${escapeHtml(nmR)}</span><button class="mm-addkid" style="background:${col}" title="Thêm nhánh con" onclick="event.stopPropagation();mmAddChild('${a.id}')">＋</button></div></foreignObject>`;
-      }
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
       const dr=String(a.dream||''), yr=yrOf(a), prog=goalProgress(a.id), cnt=prog.total, doneN=prog.done.length;
       const badge=`<span class="mml-num${(cnt&&doneN===cnt)?' full':''}" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Đã làm ${doneN}/${cnt}">${doneN}/${cnt}</span>`;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="mmBranchClick('${a.id}')">`+
-        `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span></div>`+
+        `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span><button class="mm-addkid2" style="background:${col}" title="Thêm nhánh con" onclick="event.stopPropagation();mmAddChild('${a.id}')">＋</button></div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
         ((yr||cnt)?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)} ${badge}</div>`:'')+
         `</div>`;
       // nhánh con toả ra từ mép ngoài nhãn (giống minh2025)
       let kidsMk='';
       const kids=(a.children||[]); const KL=kids.length;
-      if(KL){ const khubX=outX, kX=outX+side*72;
+      if(KL){ const kX=outX+side*72;
         kids.forEach((kd,k)=>{ const ky=Math.round(by+(k-(KL-1)/2)*30);
-          kidsMk+=`<path d="M ${khubX} ${by} C ${khubX+side*36} ${by}, ${kX-side*36} ${ky}, ${kX} ${ky}" fill="none" stroke="${col}" stroke-width="2.6" opacity=".85"/>`;
+          kidsMk+=`<path d="M ${outX} ${lineY} C ${outX+side*42} ${lineY}, ${kX-side*42} ${ky}, ${kX} ${ky}" fill="none" stroke="${col}" stroke-width="2.6" opacity=".85"/>`;
           const kt=String(kd.name||''); const kanc=side>0?'start':'end'; const kw=Math.min(180,kt.length*7.4);
           kidsMk+=`<text x="${kX+side*7}" y="${ky-2}" text-anchor="${kanc}" class="mm-child" onclick="editGoalQuick('${a.id}')">${escapeHtml(kt)}</text>`;
           const ux1=side>0?kX+7:kX-7-kw, ux2=side>0?kX+7+kw:kX-7;
