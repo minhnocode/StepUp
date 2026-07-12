@@ -1377,14 +1377,16 @@ function mmApply(){ const p=$('mmPan'); if(!p)return; p.style.transform=`transla
 function mmFit(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; const s=Math.min(fw/W, fh/H)*0.94; MMV.s=s; MMV.x=(fw-W*s)/2; MMV.y=(fh-H*s)/2; mmApply(); }
 function mmZoomAt(cx,cy,f){ const ns=Math.max(.2,Math.min(3.5,MMV.s*f)); MMV.x=cx-(cx-MMV.x)*(ns/MMV.s); MMV.y=cy-(cy-MMV.y)*(ns/MMV.s); MMV.s=ns; mmApply(); }
 function mmZoom(dir){ if(MMLOCK)return; const w=$('mmWrap'); if(!w)return; mmZoomAt(w.clientWidth/2, w.clientHeight/2, dir>0?1.2:1/1.2); }
+function mmRecenter(){ const w=$('mmWrap'); if(!w)return; const W=+w.dataset.w||1, H=+w.dataset.h||1; const fw=w.clientWidth, fh=w.clientHeight; MMV.x=(fw-W*MMV.s)/2; MMV.y=(fh-H*MMV.s)/2; mmApply(); }
 function mmUpdateLockUI(){ const w=$('mmWrap'); if(w)w.classList.toggle('locked',MMLOCK); const z=$('mmZoomBar'); if(z)z.classList.toggle('locked',MMLOCK); const b=document.querySelector('.mmlock'); if(b)b.textContent=MMLOCK?'🔒':'🔓'; }
-function mmToggleLock(){ MMLOCK=!MMLOCK; store.set('mm_lock', MMLOCK?'1':'0'); mmUpdateLockUI(); if(MMLOCK) mmFit(); }
+function mmToggleLock(){ MMLOCK=!MMLOCK; store.set('mm_lock', MMLOCK?'1':'0'); mmUpdateLockUI(); /* khoá: giữ nguyên mức zoom & vị trí hiện tại, không fit lại */ }
 let MM_DRAGGED=false;
 function mmBranchClick(id){ if(MM_DRAGGED)return; scrollToGoal(id); }
 function initMindmapPanZoom(){
   const w=$('mmWrap'); if(!w)return;
-  mmUpdateLockUI(); mmFit();
-  if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmFit(); }); }
+  mmUpdateLockUI();
+  if(MMV.init){ mmApply(); if(MMLOCK) mmRecenter(); } else { MMV.init=true; mmFit(); } // fit lần đầu, sau đó giữ nguyên zoom
+  if(!window._mmResize){ window._mmResize=1; window.addEventListener('resize',()=>{ if(MMLOCK&&$('mmWrap')) mmRecenter(); }); }
   // Pan cả khung (khi bấm nền, không phải cụm/nút)
   let drag=false,lx=0,ly=0,moved=0;
   w.addEventListener('pointerdown',e=>{ if(MMLOCK)return; if(e.target.closest&&(e.target.closest('.mmzoom')||e.target.closest('.mmbranch')))return; drag=true;moved=0;lx=e.clientX;ly=e.clientY;w.classList.add('grabbing'); try{w.setPointerCapture(e.pointerId)}catch(_){}} );
