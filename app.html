@@ -405,8 +405,9 @@
   .mml>*{width:100%}
   .mml-r{text-align:left}
   .mml-l{text-align:left}
-  .mml-ic{font-size:32px;line-height:1;margin-bottom:1px}
-  .mml-t{font:800 23px/1.14 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.4px}
+  .mml-head{display:flex;align-items:center;gap:9px}
+  .mml-ic{flex:none;font-size:27px;line-height:1}
+  .mml-t{flex:1;min-width:0;font:800 23px/1.14 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.4px}
   .mml-d{font:500 15px/1.45 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
   .mml-y{font:700 15px/1.45 var(--sans,system-ui);max-width:100%}
   .mml:hover .mml-t{text-decoration:underline}
@@ -1275,18 +1276,17 @@ function buildMindmap(areas){
   const PAD=56, leafH=34, centerW=214, centerH=196, GAP=48;
   const LW=340;                 // bề rộng khối nhãn (đơn vị viewBox)
   const T_LH=27, B_LH=21;       // cao mỗi dòng tiêu đề / nội dung
-  const CH_T=Math.floor(LW/13), CH_B=Math.floor(LW/7.4); // ký tự / dòng (ước lượng)
+  const CH_T=Math.floor((LW-46)/13), CH_B=Math.floor(LW/7.4); // ký tự / dòng (ước lượng; tiêu đề trừ chỗ icon)
   const idxOf=a=>areas.indexOf(a);
   const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
   const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
-  const ICON_H=40;
   function labelH(a){
     const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
-    let h=ICON_H+nlines(nm.toUpperCase(),CH_T)*T_LH+6;
+    let h=Math.max(38,nlines(nm.toUpperCase(),CH_T)*T_LH)+6;
     if(dr) h+=nlines('🌟 '+dr,CH_B)*B_LH+8;
     if(yr||cnt) h+=nlines('🎯 '+GYEAR()+':  '+yr,CH_B)*B_LH+8;
-    return Math.max(h+12,ICON_H+64);
+    return Math.max(h+12,110);
   }
   const bandOf=a=>labelH(a);
   const bnxOff=150;
@@ -1321,8 +1321,7 @@ function buildMindmap(areas){
       const dr=String(a.dream||''), yr=yrOf(a), cnt=(a.checkins||[]).length;
       const badge=`<span class="mml-num" style="background:${col}" onclick="event.stopPropagation();showGoalPosts('${a.id}')" title="Xem ${cnt} post link vào">${cnt}</span>`;
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="scrollToGoal('${a.id}')">`+
-        `<div class="mml-ic">${goalIcon(a)}</div>`+
-        `<div class="mml-t" style="color:${col}">${nm}</div>`+
+        `<div class="mml-head"><span class="mml-ic">${goalIcon(a)}</span><span class="mml-t" style="color:${col}">${nm}</span></div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
         ((yr||cnt)?`<div class="mml-y" style="color:${col}">🎯 ${GYEAR()}: ${nl2br(yr)} ${badge}</div>`:'')+
         `</div>`;
