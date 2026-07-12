@@ -538,6 +538,8 @@
   .kb-sc-t{font-weight:700;font-size:13px;color:var(--ink);margin-bottom:7px;word-break:break-word}
   .kb-sc-chips{display:flex;flex-wrap:wrap;gap:5px}
   .kb-sempty{color:var(--ink-faint);font-size:12.5px;padding:10px 4px;line-height:1.5}
+  .ls-l{font-size:12.5px;line-height:1.45;color:var(--ink);margin-top:3px}
+  .ls-c{font-size:12.5px;line-height:1.45;color:#6a4fb0;margin-top:5px}
   .kb-col{flex:0 0 300px;max-width:300px;border-radius:16px;display:flex;flex-direction:column;max-height:76vh;overflow:hidden;background:color-mix(in srgb, var(--kc) 8%, #fff);border:1px solid color-mix(in srgb, var(--kc) 30%, var(--line));box-shadow:0 6px 18px color-mix(in srgb, var(--kc) 22%, transparent)}
   .kb-head{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--kc);min-height:60px;box-sizing:border-box}
   .kb-hact{flex:none;display:flex;align-items:center;gap:4px}
@@ -854,6 +856,8 @@ const DEFAULT_FIELDS = [
   {id:'gratitude',    label:'Biết ơn',       type:'gratitude', placeholder:'Điều bạn biết ơn…'},
   {id:'achievements', label:'Thành tựu',     type:'checklist', options:['Dậy sớm','Vận động 30\'','Dọn nhà'], placeholder:'Thành tựu khác hôm nay…'},
   {id:'lessons',      label:'Bài học',       type:'text',   placeholder:'Rút ra được điều gì?'},
+  {id:'learn',        label:'Hôm nay học được gì', type:'text', placeholder:'Insight/bài học rút ra hôm nay…'},
+  {id:'change',       label:'Làm lại sẽ đổi gì',   type:'text', placeholder:'Nếu làm lại, mình sẽ điều chỉnh…'},
 ];
 const MOODS=[{em:'🔥',v:'Bứt phá'},{em:'🙂',v:'Tích cực'},{em:'😐',v:'Bình thường'},{em:'😓',v:'Mệt'},{em:'😟',v:'Áp lực'}];
 const TYPE_LABELS={text:'Văn bản',people:'Người (danh bạ)',gratitude:'Biết ơn (dòng + người)',checklist:'Việc cố định (checklist)',mood:'Tâm trạng',rating:'Thang điểm'};
@@ -880,12 +884,19 @@ const MONTHS=['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
 function weekdayName(iso){try{return WD[parseISO(iso).getDay()]}catch(e){return''}}
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function toast(msg,err){const t=$('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',2800)}
-function migrateFields(fields){return (Array.isArray(fields)?fields:[]).map(f=>{
-  if(!f)return f;
-  if(f.id==='gratitude'&&f.type==='people')return {...f,type:'gratitude'};
-  if(f.id==='achievements'&&f.type==='text')return {...f,type:'checklist',options:(f.options&&f.options.length?f.options:['Dậy sớm','Vận động 30\'','Dọn nhà'])};
-  return f;
-})}
+function migrateFields(fields){
+  const out=(Array.isArray(fields)?fields:[]).map(f=>{
+    if(!f)return f;
+    if(f.id==='gratitude'&&f.type==='people')return {...f,type:'gratitude'};
+    if(f.id==='achievements'&&f.type==='text')return {...f,type:'checklist',options:(f.options&&f.options.length?f.options:['Dậy sớm','Vận động 30\'','Dọn nhà'])};
+    return f;
+  }).filter(Boolean);
+  // đảm bảo 2 câu "Học / Đổi" (vòng phản hồi kiểu Musk) luôn có
+  [{id:'learn',label:'Hôm nay học được gì',type:'text',placeholder:'Insight/bài học rút ra hôm nay…'},
+   {id:'change',label:'Làm lại sẽ đổi gì',type:'text',placeholder:'Nếu làm lại, mình sẽ điều chỉnh…'}]
+    .forEach(nf=>{ if(!out.some(f=>f&&f.id===nf.id)) out.push(nf); });
+  return out;
+}
 function loadCachedFields(){try{const f=JSON.parse(store.get('journal_fields')||'null');return migrateFields(Array.isArray(f)&&f.length?f:DEFAULT_FIELDS.slice())}catch(e){return DEFAULT_FIELDS.slice()}}
 function loadCachedContacts(){try{const c=JSON.parse(store.get('journal_contacts')||'null');return Array.isArray(c)?c:[]}catch(e){return[]}}
 
@@ -1505,13 +1516,21 @@ function renderBoard(){
     `</div>`;
   }).join('');
   return `<div class="kb-wrap"><div class="kb-title-row">🗂️ Bảng (kéo thẻ sang cột khác)</div>`+
-    `<div class="kb-board">${cols}${achColumnHTML()}${gratColumnHTML()}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
+    `<div class="kb-board">${cols}${achColumnHTML()}${gratColumnHTML()}${lessonColumnHTML()}<button class="kb-addcol" onclick="kbAddCol()">＋ Thêm cột</button></div></div>`;
 }
 // 2 cột đặc biệt tham chiếu dữ liệu (chỉ đọc): Thành tựu & Biết ơn
 function achColumnHTML(){
   const ach=[]; FIELDS.forEach(f=>{if(f.type!=='checklist')return;(f.options||[]).forEach(opt=>{ const days=ENTRIES.filter(e=>normCheck((e.data||{})[f.id]).done.indexOf(opt)>=0).map(e=>e.date).sort(); if(days.length)ach.push({label:opt,dates:days}); })});
   const cards=ach.length?ach.map(a=>`<div class="kb-scard"><div class="kb-sc-t">✓ ${escapeHtml(a.label)}</div><div class="kb-sc-chips">${a.dates.map((d,j)=>`<span class="daychip c${j%8}" onclick="openDayISO('${d}')">${d.slice(8,10)}/${d.slice(5,7)}</span>`).join('')}</div></div>`).join(''):'<div class="kb-sempty">Chưa có thành tựu — tick ở nhật ký hôm nay.</div>';
   return `<div class="kb-col kb-scol" style="--kc:#E0913C"><div class="kb-head"><div class="kb-stitle">🏆 Thành tựu</div><span class="kb-count">${ach.length}</span></div><div class="kb-sbody">${cards}</div></div>`;
+}
+function lessonColumnHTML(){
+  const cutoff=parseISO(todayISO()); cutoff.setDate(cutoff.getDate()-6);   // 7 ngày gần nhất
+  const items=[];
+  ENTRIES.forEach(e=>{ let d; try{d=parseISO(e.date)}catch(_){return} if(d<cutoff)return; const lr=(e.data&&e.data.learn)?String(e.data.learn).trim():''; const ch=(e.data&&e.data.change)?String(e.data.change).trim():''; if(lr||ch) items.push({date:e.date,learn:lr,change:ch}); });
+  items.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const cards=items.length?items.map(it=>`<div class="kb-scard"><div class="kb-sc-t">${fmtD(it.date)}</div>${it.learn?`<div class="ls-l">📚 ${escapeHtml(it.learn)}</div>`:''}${it.change?`<div class="ls-c">🔄 ${escapeHtml(it.change)}</div>`:''}</div>`).join(''):'<div class="kb-sempty">Chưa có — trả lời 2 câu "Học / Đổi" ở nhật ký hôm nay.</div>';
+  return `<div class="kb-col kb-scol" style="--kc:#7A5CD0"><div class="kb-head"><div class="kb-stitle">📚 Bài học 7 ngày</div><span class="kb-count">${items.length}</span></div><div class="kb-sbody">${cards}</div></div>`;
 }
 function gratColumnHTML(){
   const gmap={},order=[]; ENTRIES.forEach(e=>FIELDS.forEach(f=>{if(f.type!=='gratitude')return;const v=(e.data||{})[f.id];if(!Array.isArray(v))return; v.forEach(g=>{if(!g)return;const isObj=typeof g==='object';const person=(isObj&&g.person?String(g.person).trim():'')||'(chưa gắn tên)';const text=isObj?(g.text||''):String(g);if(!gmap[person]){gmap[person]=[];order.push(person)}gmap[person].push({text,date:e.date})}); }));
