@@ -401,14 +401,20 @@
   .mmwrap{width:100vw;position:relative;left:50%;margin-left:-50vw;margin-top:2px;margin-bottom:10px;overflow-x:auto;background:radial-gradient(120% 90% at 50% 42%,#FCF5E1 0%,#F6E9C6 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px max(24px,4vw)}
   .mmsvg{display:block;width:100%;height:auto;min-width:760px}
   .mm-l{font:500 15px/1 var(--sans,system-ui);fill:#2b2b2b}
-  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;cursor:pointer;padding:0 4px}
+  .mml{height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:4px;cursor:pointer;padding:0 4px}
   .mml>*{width:100%}
   .mml-r{text-align:left}
   .mml-l{text-align:right}
-  .mml-t{font:800 22px/1.12 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.3px}
-  .mml-d{font:500 15px/1.4 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
-  .mml-y{font:700 15px/1.4 var(--sans,system-ui);max-width:100%}
+  .mml-ic{font-size:32px;line-height:1;margin-bottom:1px}
+  .mml-t{font:800 23px/1.14 var(--sans,system-ui,-apple-system,Segoe UI,Roboto);letter-spacing:.4px}
+  .mml-d{font:500 15px/1.45 var(--sans,system-ui);color:#3a3a3a;max-width:100%}
+  .mml-y{font:700 15px/1.45 var(--sans,system-ui);max-width:100%}
   .mml:hover .mml-t{text-decoration:underline}
+  /* thẻ đổi icon trong card */
+  .gname-row{display:flex;align-items:center;gap:9px;margin-bottom:2px}
+  .gname-row .gname{flex:1;margin:0}
+  .gicon{flex:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .gicon:hover{border-color:var(--brass);background:var(--paper)}
   .mmc{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(158deg,#E7473C 0%,#C8382F 100%);border:3px solid #fff;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#fff;cursor:pointer;padding:14px;box-shadow:0 12px 30px rgba(200,56,49,.35)}
   .mmc-av{width:74px;height:74px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.85);background:#fff}
   .mmc-ph{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:32px;font-weight:700;color:#E7473C}
@@ -1221,6 +1227,26 @@ function addGoalLink(){
 function removeGoalLink(aid,cid){ const a=findArea(aid); if(!a)return; a.checkins=(a.checkins||[]).filter(c=>c.id!==cid); persistGoals(); renderGoalLink(dayLocked()); }
 function goalCenterTitle(){ return ((GOALS.title||'').trim()) || ((GUSER&&GUSER.name)?GUSER.name:'Mục tiêu của tôi'); }
 function goalAvatar(){ return (GUSER&&GUSER.picture)?GUSER.picture:''; }
+function goalIcon(a){
+  if(a&&a.icon) return a.icon;
+  const s=String((a&&a.name)||'').toLowerCase();
+  const has=(...ks)=>ks.some(k=>s.includes(k));
+  if(has('sức khỏe','suc khoe','sức khoẻ','thể lực','the luc','gym','vận động','the thao','thể thao')) return '💪';
+  if(has('gia đình','gia dinh','vợ','vo','chồng','chong','family')) return '👨‍👩‍👧‍👦';
+  if(has('con cái','con cai',' con','các con','cac con')) return '🧒';
+  if(has('sự nghiệp','su nghiep','công việc','cong viec','đội ngũ','doi ngu','kinh doanh','business','career','dự án','du an')) return '💼';
+  if(has('tài chính','tai chinh','tiền','tien','tài sản','tai san','money','đầu tư','dau tu')) return '💰';
+  if(has('đạo phật','dao phat','thiền','thien','tâm linh','tam linh','phật','chánh niệm','chanh niem','buddha')) return '🧘';
+  if(has('giá trị','gia tri','cốt lõi','cot loi','value','nguyên tắc','nguyen tac')) return '🧭';
+  if(has('trải nghiệm','trai nghiem','du lịch','du lich','travel','khám phá','kham pha','leo núi','leo nui','từ thiện','tu thien')) return '🏔️';
+  if(has('thói quen','thoi quen','habit','kỷ luật','ky luat')) return '⚡';
+  if(has('mối quan hệ','moi quan he','bạn bè','ban be','quan hệ','network','relationship')) return '🤝';
+  if(has('học','hoc','tri thức','tri thuc','kiến thức','kien thuc','đọc sách','doc sach','study','learn')) return '📚';
+  if(has('tình yêu','tinh yeu','love')) return '❤️';
+  if(has('tinh thần','tinh than','cảm xúc','cam xuc','hạnh phúc','hanh phuc','mental')) return '😊';
+  return '🎯';
+}
+function editGoalIcon(id){ const a=findArea(id); if(!a)return; const v=prompt('Nhập 1 emoji cho mục tiêu này (để trống = tự chọn theo tên):', a.icon||''); if(v==null)return; a.icon=(v||'').trim(); persistGoals(); renderGoals(); }
 const GTONES=['#2E7CD6','#E0473C','#2FA463','#7A5CD0','#E0913C','#159AA8','#C8478B','#5B8C2A'];
 function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
@@ -1240,12 +1266,13 @@ function buildMindmap(areas){
   const yrOf=a=>String((a.year&&a.year[GYEAR()])||'');
   const nlines=(t,cpl)=>{ if(!t)return 0; return String(t).split('\n').reduce((s,ln)=>s+Math.max(1,Math.ceil(ln.length/cpl)),0); };
   const nl2br=t=>escapeHtml(String(t)).replace(/\n/g,'<br>');
+  const ICON_H=40;
   function labelH(a){
     const nm=String(a.name||'(mục tiêu)'), dr=String(a.dream||''), yr=yrOf(a);
-    let h=nlines(nm.toUpperCase(),CH_T)*T_LH+6;
+    let h=ICON_H+nlines(nm.toUpperCase(),CH_T)*T_LH+6;
     if(dr) h+=nlines('🌟 '+dr,CH_B)*B_LH+8;
     if(yr) h+=nlines('🎯 '+yr,CH_B)*B_LH+8;
-    return Math.max(h+12,64);
+    return Math.max(h+12,ICON_H+64);
   }
   const leafW=a=>{let m=0;(a.checkins||[]).forEach(c=>{m=Math.max(m,String(c.text||'').length)});return Math.min(220,Math.max(56,Math.min(m,32)*8));};
   const bandOf=a=>Math.max(labelH(a),(a.checkins||[]).length*leafH+18);
@@ -1280,6 +1307,7 @@ function buildMindmap(areas){
       const nm=escapeHtml(String(a.name||'(mục tiêu)').toUpperCase());
       const dr=String(a.dream||''), yr=yrOf(a);
       const inner=`<div xmlns="http://www.w3.org/1999/xhtml" class="mml ${side>0?'mml-r':'mml-l'}" onclick="scrollToGoal('${a.id}')">`+
+        `<div class="mml-ic">${goalIcon(a)}</div>`+
         `<div class="mml-t" style="color:${col}">${nm}</div>`+
         (dr?`<div class="mml-d">🌟 ${nl2br(dr)}</div>`:'')+
         (yr?`<div class="mml-y" style="color:${col}">🎯 ${nl2br(yr)}</div>`:'')+
@@ -1313,7 +1341,7 @@ function goalCardHTML(a){
   const yr=GYEAR(); const yg=(a.year&&a.year[yr])||'';
   const cks=(a.checkins||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)));
   const cksHtml=cks.length?cks.map(c=>`<div class="gck"><span class="gck-d">${c.date?fmtD(c.date):''}</span><span class="gck-t">${escapeHtml(c.text||'')}</span><button class="gck-x" onclick="removeCheckin('${a.id}','${c.id}')">×</button></div>`).join(''):'<div class="gempty">Chưa có check-in</div>';
-  return `<input class="ginput gname" value="${escapeHtml(a.name||'')}" placeholder="Tên mục tiêu (Sức khỏe, Sự nghiệp…)" onchange="editGoalName('${a.id}',this.value)">
+  return `<div class="gname-row"><button class="gicon" title="Đổi icon" onclick="editGoalIcon('${a.id}')">${goalIcon(a)}</button><input class="ginput gname" value="${escapeHtml(a.name||'')}" placeholder="Tên mục tiêu (Sức khỏe, Sự nghiệp…)" onchange="editGoalName('${a.id}',this.value)"></div>
     <label class="glab">🌟 Ước mơ cả đời</label>
     <textarea class="garea" rows="1" placeholder="Bạn mong điều gì cho mảng này…" oninput="gGrow(this)" onchange="editGoal('${a.id}','dream',this.value)">${escapeHtml(a.dream||'')}</textarea>
     <label class="glab">🎯 Mục tiêu ${yr}</label>
