@@ -1,7 +1,7 @@
 {
-  "name": "Nhật ký",
-  "short_name": "Nhật ký",
-  "description": "Nhật ký cá nhân — dữ liệu nằm trong Google Drive của chính bạn.",
+  "name": "StepUp",
+  "short_name": "StepUp",
+  "description": "StepUp — mindmap mục tiêu cuộc đời & nhật ký mỗi ngày, dữ liệu nằm trong Google Drive của chính bạn.",
   "lang": "vi",
   "start_url": "./app.html",
   "scope": "./",

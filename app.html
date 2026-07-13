@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1B2A2E">
-<title>Nhật ký</title>
+<title>StepUp</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- PWA: cài đặt như app trên Mac & iPhone -->
 <link rel="manifest" href="./manifest.json">
@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Nhật ký">
+<meta name="apple-mobile-web-app-title" content="StepUp">
 <meta name="app-build" content="1.0">
 <style>
   :root{
@@ -637,7 +637,7 @@
 <div id="lockScreen" class="center-wrap hidden">
   <div class="card-panel lock-card">
     <div class="ico">🔒</div>
-    <h1 class="serif">Nhật ký Doanh nhân</h1>
+    <h1 class="serif">StepUp</h1>
     <p class="muted" style="margin-bottom:20px">Nhập mật khẩu để mở.</p>
     <input id="lockInput" class="tinput" type="password" placeholder="Mật khẩu" style="text-align:center" onkeydown="if(event.key==='Enter')tryUnlock()">
     <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="tryUnlock()">Mở khoá</button>
@@ -658,8 +658,8 @@
 <div id="loginScreen" class="center-wrap hidden">
   <div class="card-panel lock-card">
     <div class="ico">📔</div>
-    <h1 class="serif">Nhật ký</h1>
-    <p class="muted" style="margin-bottom:22px">Đăng nhập bằng Google để bắt đầu.<br>Nhật ký của bạn lưu trong <b>Google Drive của chính bạn</b> — riêng tư tuyệt đối, không ai khác đọc được.</p>
+    <h1 class="serif">StepUp</h1>
+    <p class="muted" style="margin-bottom:22px">Đăng nhập bằng Google để bắt đầu.<br>Mục tiêu & nhật ký của bạn lưu trong <b>Google Drive của chính bạn</b> — riêng tư tuyệt đối, không ai khác đọc được.</p>
     <button class="btn btn-primary" style="width:100%" onclick="signIn()">Đăng nhập bằng Google</button>
     <div id="loginErr" class="err"></div>
     <p class="muted" style="font-size:12px;margin-top:14px">Ứng dụng chỉ tạo/đọc đúng những file nhật ký của nó trong Drive của bạn (quyền hẹp <code>drive.file</code>).</p>
@@ -670,7 +670,7 @@
 <div id="setupScreen" class="center-wrap hidden">
   <div class="card-panel">
     <div class="setup-hero">
-      <h1 class="serif">Nhật ký Doanh nhân</h1>
+      <h1 class="serif">StepUp</h1>
       <p>Ghi mỗi ngày, xem theo lịch, đính ảnh. Mọi thứ nằm trong Google Sheet & Drive của bạn — không server, bạn toàn quyền sở hữu.</p>
     </div>
     <div class="setup-body">
@@ -693,7 +693,7 @@
 <!-- APP -->
 <div id="appScreen" class="hidden">
   <div class="topbar">
-    <div class="brand">Nhật ký<span class="dot">.</span></div>
+    <div class="brand">StepUp<span class="dot">.</span></div>
     <div class="seg">
       <button id="segGoals" class="on" onclick="setView('goals')" title="Mục tiêu">🎯 Mục tiêu</button>
       <button id="segHome" onclick="setView('home')" title="Tổng quan">✨</button>
