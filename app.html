@@ -1818,7 +1818,6 @@ function buildMindmap(areas){
   snaps.push([fxS,fyS],[fxS+centerW,fyS],[fxS,fyS+centerH],[fxS+centerW,fyS+centerH]);
   snaps.forEach(s=>{ snapMk+=`<circle class="mm-snap" data-x="${s[0]}" data-y="${s[1]}" cx="${s[0]}" cy="${s[1]}" r="7"/>`; });
   return `<div class="mmwrap${MMLOCK?' locked':''}" id="mmWrap" data-w="${W}" data-h="${H}">`+
-      `<button class="mmadd" onclick="addGoalArea()">＋ Thêm nhánh</button>`+
       `<div class="mmpan" id="mmPan"><svg class="mmsvg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${paths}${subs}${labels}${leaves}${fo}${snapMk}${anchors}</svg></div>`+
       `<div class="mmzoom${MMLOCK?' locked':''}" id="mmZoomBar">`+
         `<button class="mmlock" onclick="mmToggleLock()" title="Khoá / mở di chuyển">${MMLOCK?'🔒':'🔓'}</button>`+
