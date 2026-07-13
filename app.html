@@ -602,7 +602,8 @@
   .ghl{margin-top:24px;display:grid;gap:16px}
   @media(min-width:900px){.ghl{grid-template-columns:1fr 1fr}}
   .gtoday{margin-top:22px;max-width:660px}
-  .gtoday-hint{font-size:12px;color:var(--ink-faint);margin-top:10px;text-align:right}
+  .gtoday-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+  .gtoday-hint{font-size:12px;color:var(--ink-faint)}
   /* danh sách đầy đủ các mục tiêu (thẻ nhiều màu) */
   .gcards{margin-top:26px;display:grid;grid-template-columns:1fr;gap:16px}
   @media(min-width:760px){.gcards{grid-template-columns:1fr 1fr}}
@@ -1329,6 +1330,15 @@ function editorHTML(c,locked){
   });
   return html;
 }
+function edSaveManual(){
+  if(!edCur)return;
+  FIELDS.forEach(f=>{
+    const el=$('ed_'+f.id); if(!el)return;
+    if(f.type==='checklist'){ const cv=normCheck(edCur.data[f.id]); cv.note=(el.value||'').trim(); edCur.data[f.id]=cv; }
+    else if(f.type!=='gratitude'){ edCur.data[f.id]=(el.value||'').trim(); }
+  });
+  edSave(); toast('Đã lưu nhật ký ✅');
+}
 function edSave(){
   const c=edCur;if(!c)return;
   const has=FIELDS.some(f=>{const v=c.data[f.id];if(f.type==='checklist'){const cc=normCheck(v);return cc.done.length||cc.note}if(f.type==='gratitude')return Array.isArray(v)&&v.length;if(Array.isArray(v))return v.length;return v!==''&&v!=null})||(c.images||[]).length;
@@ -1486,7 +1496,7 @@ function renderGoals(){
   // editor nhật ký hôm nay ở cuối
   const e=BYDATE[todayISO()];
   edCur=e?JSON.parse(JSON.stringify(e)):{id:'',date:todayISO(),data:{},images:[]};
-  const today='<div class="q-card gtoday"><div class="q-head">✍️ Nhật ký hôm nay · '+weekdayName(todayISO())+' '+fmtD(todayISO())+'</div>'+editorHTML(edCur,false)+'<div class="gtoday-hint">Tự động lưu khi bạn nhập.</div></div>';
+  const today='<div class="q-card gtoday"><div class="q-head">✍️ Nhật ký hôm nay · '+weekdayName(todayISO())+' '+fmtD(todayISO())+'</div>'+editorHTML(edCur,false)+'<div class="gtoday-foot"><span class="gtoday-hint">Tự động lưu khi bạn nhập.</span><button class="gbtn" onclick="edSaveManual()">💾 Lưu nhật ký</button></div></div>';
   $('fieldsHost').innerHTML=''; $('homeToday').innerHTML='';   // tránh trùng id editor
   $('goalsList').innerHTML = mm + renderBoard() + today;
   if(N) initMindmapPanZoom();
