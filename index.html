@@ -79,6 +79,24 @@
   .final p{color:var(--ink-soft);margin-top:12px;font-size:16px}
   .final .btn-primary{margin-top:26px;padding:15px 32px;font-size:16px}
 
+  /* khu demo mindmap + bảng */
+  .demo{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:18px;margin-top:30px}
+  .demo-svg{width:100%;height:auto;display:block;background:radial-gradient(120% 100% at 50% 40%,#FCF5E1,#F6E9C6);border-radius:14px}
+  .d-t{font:800 15px/1 var(--sans);letter-spacing:.3px}
+  .d-s{font:500 12px/1 var(--sans);fill:var(--ink-soft)}
+  .d-c{font-family:var(--serif);font-weight:700;font-size:19px;fill:#fff}
+  .d-c2{font:600 11px/1 var(--sans);fill:rgba(255,255,255,.9)}
+  .demo-cap{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:12px}
+  .dboard{display:flex;gap:13px;overflow-x:auto;margin-top:16px;padding-bottom:6px}
+  .dcol{flex:0 0 210px;max-width:210px;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .dcol-h{color:#fff;font-weight:800;font-size:13px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center}
+  .dcol-h .cn{background:rgba(255,255,255,.28);border-radius:999px;font-size:11px;padding:1px 8px}
+  .dcol-b{padding:9px;display:flex;flex-direction:column;gap:7px}
+  .dcard{background:#fff;border:1px solid var(--line);border-left:4px solid var(--dc,var(--line));border-radius:9px;padding:8px 10px;font-size:12.5px;line-height:1.4;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;gap:8px;align-items:flex-start}
+  .dbox{width:15px;height:15px;border-radius:4px;border:2px solid var(--dc);flex:none;margin-top:1px}
+  .dbox.on{background:var(--dc);position:relative}
+  .dtag{display:inline-block;margin-top:5px;font-size:10.5px;font-weight:700;color:#fff;background:var(--tg);border-radius:999px;padding:1px 7px}
+  @media(max-width:560px){.dcol{flex:0 0 175px;max-width:175px}}
   footer{border-top:1px solid var(--line);padding:26px 0;color:var(--ink-faint);font-size:13.5px}
   footer .wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
 </style>
@@ -101,15 +119,93 @@
       <span class="fine">Đăng nhập bằng Google · không cài đặt phức tạp · miễn phí</span>
     </div>
     <div class="mock">
-      <div class="d">🎯 Sức khỏe · Mục tiêu 2026</div>
-      <div class="row">🌟 Sống khỏe, minh mẫn, yêu đời đến 80 tuổi</div>
-      <div class="row">📌 <span class="chip on">Đã làm 2/4</span> <span class="chip">Minh &lt;60kg</span> <span class="chip">200 ngày vận động</span></div>
+      <div class="d">🎯 Sức khỏe · Mục tiêu năm nay</div>
+      <div class="row">🌟 Sống khỏe, tràn năng lượng, minh mẫn dài lâu</div>
+      <div class="row">📌 <span class="chip on">Đã làm 2/4</span> <span class="chip">Cân nặng mục tiêu</span> <span class="chip">200 ngày vận động</span></div>
       <div class="row">✍️ Hôm nay học được: kỷ luật thắng ý chí</div>
     </div>
   </div>
 </header>
 
-<section class="pad">
+<section class="pad" style="padding-bottom:20px">
+  <div class="wrap">
+    <div class="kicker">Xem thử</div>
+    <h2 class="sec serif">Cả cuộc đời trong một bản đồ</h2>
+    <div class="demo">
+      <svg class="demo-svg" viewBox="0 0 1000 540" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E7473C"/><stop offset="1" stop-color="#C8382F"/></linearGradient></defs>
+        <!-- nhánh -->
+        <path d="M595 240 C 630 240, 630 134, 655 134" fill="none" stroke="#2FA463" stroke-width="5" stroke-linecap="round"/>
+        <path d="M595 270 C 630 270, 630 274, 655 274" fill="none" stroke="#2E7CD6" stroke-width="5" stroke-linecap="round"/>
+        <path d="M595 300 C 630 300, 630 414, 655 414" fill="none" stroke="#E0913C" stroke-width="5" stroke-linecap="round"/>
+        <path d="M405 240 C 370 240, 370 134, 345 134" fill="none" stroke="#E0473C" stroke-width="5" stroke-linecap="round"/>
+        <path d="M405 270 C 370 270, 370 274, 345 274" fill="none" stroke="#7A5CD0" stroke-width="5" stroke-linecap="round"/>
+        <path d="M405 300 C 370 300, 370 414, 345 414" fill="none" stroke="#159AA8" stroke-width="5" stroke-linecap="round"/>
+        <!-- gạch chân -->
+        <line x1="655" y1="140" x2="838" y2="140" stroke="#2FA463" stroke-width="3"/>
+        <line x1="655" y1="280" x2="838" y2="280" stroke="#2E7CD6" stroke-width="3"/>
+        <line x1="655" y1="420" x2="838" y2="420" stroke="#E0913C" stroke-width="3"/>
+        <line x1="162" y1="140" x2="345" y2="140" stroke="#E0473C" stroke-width="3"/>
+        <line x1="162" y1="280" x2="345" y2="280" stroke="#7A5CD0" stroke-width="3"/>
+        <line x1="162" y1="420" x2="345" y2="420" stroke="#159AA8" stroke-width="3"/>
+        <!-- nhãn phải -->
+        <text x="655" y="128" class="d-t" fill="#2FA463">💪 SỨC KHỎE</text>
+        <text x="655" y="158" class="d-s">Khỏe mạnh, tràn năng lượng</text>
+        <text x="655" y="268" class="d-t" fill="#2E7CD6">💼 SỰ NGHIỆP</text>
+        <text x="655" y="298" class="d-s">Xây đội ngũ tự chủ</text>
+        <text x="655" y="408" class="d-t" fill="#E0913C">💰 TÀI CHÍNH</text>
+        <text x="655" y="438" class="d-s">Tự do tài chính</text>
+        <!-- nhãn trái -->
+        <text x="345" y="128" text-anchor="end" class="d-t" fill="#E0473C">👨‍👩‍👧 GIA ĐÌNH</text>
+        <text x="345" y="158" text-anchor="end" class="d-s">Ấm áp, cùng nhau lớn lên</text>
+        <text x="345" y="268" text-anchor="end" class="d-t" fill="#7A5CD0">🧘 TÂM HỒN</text>
+        <text x="345" y="298" text-anchor="end" class="d-s">Sống an, có chiều sâu</text>
+        <text x="345" y="408" text-anchor="end" class="d-t" fill="#159AA8">🌏 TRẢI NGHIỆM</text>
+        <text x="345" y="438" text-anchor="end" class="d-s">Đặt chân tới nhiều vùng đất</text>
+        <!-- thẻ trung tâm -->
+        <rect x="405" y="212" width="190" height="116" rx="20" fill="url(#dg)"/>
+        <text x="500" y="262" text-anchor="middle" class="d-c">Sứ mệnh</text>
+        <text x="500" y="284" text-anchor="middle" class="d-c">của bạn</text>
+        <text x="500" y="308" text-anchor="middle" class="d-c2">Kỷ luật · Biết ơn · Năng lượng</text>
+      </svg>
+
+      <div class="dboard">
+        <div class="dcol"><div class="dcol-h" style="background:#159AA8"><span>🗺️ Việc cần làm · 10 năm</span><span class="cn">5</span></div>
+          <div class="dcol-b" style="--dc:#159AA8">
+            <div class="dcard">Leo lên đỉnh núi cao nhất</div>
+            <div class="dcard">Đi qua 20 vùng đất mới</div>
+            <div class="dcard">Viết 1 cuốn sách để lại</div>
+            <div class="dcard">Xây dựng một cộng đồng</div>
+          </div>
+        </div>
+        <div class="dcol"><div class="dcol-h" style="background:#2E7CD6"><span>🎯 Việc cần làm · Năm nay</span><span class="cn">1/4</span></div>
+          <div class="dcol-b" style="--dc:#2E7CD6">
+            <div class="dcard"><span class="dbox on"></span><span>Chạy một giải 10km<span class="dtag" style="--tg:#2FA463">Sức khỏe</span></span></div>
+            <div class="dcard"><span class="dbox"></span><span>Đọc 24 cuốn sách</span></div>
+            <div class="dcard"><span class="dbox"></span><span>Tiết kiệm 20% thu nhập<span class="dtag" style="--tg:#E0913C">Tài chính</span></span></div>
+            <div class="dcard"><span class="dbox"></span><span>Học một kỹ năng mới</span></div>
+          </div>
+        </div>
+        <div class="dcol"><div class="dcol-h" style="background:#E0913C"><span>🏆 Thành tựu</span><span class="cn">3</span></div>
+          <div class="dcol-b" style="--dc:#E0913C">
+            <div class="dcard">✓ Dậy sớm</div>
+            <div class="dcard">✓ Vận động 30'</div>
+            <div class="dcard">✓ Đọc 20 phút</div>
+          </div>
+        </div>
+        <div class="dcol"><div class="dcol-h" style="background:#7A5CD0"><span>📚 Bài học 7 ngày</span><span class="cn">2</span></div>
+          <div class="dcol-b" style="--dc:#7A5CD0">
+            <div class="dcard">📚 Bắt đầu nhỏ, đều đặn thắng bùng nổ</div>
+            <div class="dcard">🔄 Lần sau lên kế hoạch tối hôm trước</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-cap">Hình minh hoạ — dữ liệu của bạn do bạn tự tạo và lưu riêng trong Google Drive của bạn.</div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" style="padding-top:26px">
   <div class="wrap">
     <div class="kicker">Tính năng</div>
     <h2 class="sec serif">Từ bức tranh lớn đến việc làm mỗi ngày</h2>
