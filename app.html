@@ -1490,7 +1490,8 @@ function renderGoals(){
   const areas=(GOALS.areas||[]); const N=areas.length;
   const mm = N ? buildMindmap(areas)
     : '<div class="gempty big">Chưa có mục tiêu. Bấm <b>＋ Mục tiêu</b> để thêm nhánh đầu tiên (Sức khỏe · Sự nghiệp · Gia đình · Tài sản…).</div>';
-  // editor nhật ký hôm nay ở cuối
+  // editor nhật ký hôm nay ở cuối (giống hệt tab Ngày, cho HÔM NAY)
+  selDate=todayISO();
   const e=BYDATE[todayISO()];
   edCur=e?JSON.parse(JSON.stringify(e)):{id:'',date:todayISO(),data:{},images:[]};
   const today='<div class="q-card gtoday"><div class="q-head">✍️ Nhật ký hôm nay · '+weekdayName(todayISO())+' '+fmtD(todayISO())+'</div>'+editorHTML(edCur,false)+'<div class="gtoday-foot"><span class="gtoday-hint">Tự động lưu khi bạn nhập.</span><button class="gbtn" onclick="edSaveManual()">💾 Lưu nhật ký</button></div></div>';
@@ -1499,6 +1500,7 @@ function renderGoals(){
   if(N) initMindmapPanZoom();
   initBoardDnD();
   edGrowAll('goalsList');
+  renderGoalLink(false);   // widget "Gắn thành tựu vào mục tiêu (mục lớn)" như tab Ngày
 }
 /* ===== Bảng kiểu Trello (dưới mindmap): cột · thẻ · kéo-thả ===== */
 function kbBoard(){ GOALS.board=GOALS.board||{cols:[]}; return GOALS.board; }
