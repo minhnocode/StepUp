@@ -355,6 +355,21 @@
   .qg-opt:hover{background:var(--paper);color:var(--brass)}
 
   /* ===== Mục tiêu ===== */
+  /* Tab Đề xuất */
+  .sg-wrap{max-width:640px;margin:0 auto}
+  .sg-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .sg-title{font-size:22px;font-weight:600}
+  .sg-date{color:var(--ink-faint);font-size:13px}
+  .sg-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+  .sg-card.main{background:linear-gradient(158deg,#FFF6DF,#FBEAC2);border-color:var(--brass)}
+  .sg-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--brass);padding:3px 10px;border-radius:999px}
+  .sg-t{font-family:var(--serif);font-weight:700;font-size:20px;line-height:1.3;margin-top:11px;color:var(--ink)}
+  .sg-d{font-size:14.5px;line-height:1.55;color:var(--ink-soft);margin-top:7px}
+  .sg-nt{font-weight:700;font-size:15px;color:var(--ink)}
+  .sg-acts{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+  .sg-sub{font-weight:700;font-size:13px;color:var(--forest);margin:20px 2px 10px}
+  .sg-quote{font-family:var(--serif);font-style:italic;text-align:center;color:var(--ink-soft);font-size:15px;margin:22px 8px 6px}
+  .sg-note{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:4px}
   .goals-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
   .goals-title{font-size:22px;font-weight:600}
   .goals-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -703,6 +718,7 @@
       <button id="segHome" onclick="setView('home')" title="Tổng quan">✨</button>
       <button id="segCal" onclick="setView('calendar')">Lịch</button>
       <button id="segDay" onclick="setView('day')">Ngày</button>
+      <button id="segSuggest" onclick="setView('suggest')" title="Đề xuất phát triển mỗi ngày">💡 Đề xuất</button>
       <button id="segSearch" onclick="setView('search')">Tìm</button>
     </div>
     <button class="add-today-btn" onclick="goAddToday()" title="Ghi nhật ký hôm nay">＋<span class="att-t"> Hôm nay</span></button>
@@ -772,6 +788,9 @@
       <div class="search-bar"><input id="searchInput" type="search" placeholder="Tìm theo từ khoá, tên người…" oninput="renderSearch()"></div>
       <div id="searchResults"></div>
     </div>
+
+    <!-- Đề xuất -->
+    <div id="suggestView" class="hidden"></div>
 
     <!-- Mục tiêu -->
     <div id="goalsView" class="hidden">
@@ -1236,15 +1255,17 @@ function setView(v){
   $('segCal').classList.toggle('on',v==='calendar');
   $('segDay').classList.toggle('on',v==='day');
   $('segSearch').classList.toggle('on',v==='search');
+  $('segSuggest')&&$('segSuggest').classList.toggle('on',v==='suggest');
   $('homeView').classList.toggle('hidden',v!=='home');
   $('calView').classList.toggle('hidden',v!=='calendar');
   $('dayView').classList.toggle('hidden',v!=='day');
   $('searchView').classList.toggle('hidden',v!=='search');
   $('goalsView').classList.toggle('hidden',v!=='goals');
+  $('suggestView')&&$('suggestView').classList.toggle('hidden',v!=='suggest');
   document.querySelector('.day-foot').classList.toggle('hidden',v!=='day');
   renderCurrentView();
 }
-function renderCurrentView(){ if(!$('appScreen')||$('appScreen').classList.contains('hidden'))return; if(view==='home')renderHome();else if(view==='goals')renderGoals();else if(view==='calendar')renderCalendar();else if(view==='search')renderSearch();else renderDay(); }
+function renderCurrentView(){ if(!$('appScreen')||$('appScreen').classList.contains('hidden'))return; if(view==='home')renderHome();else if(view==='goals')renderGoals();else if(view==='calendar')renderCalendar();else if(view==='search')renderSearch();else if(view==='suggest')renderSuggest();else renderDay(); }
 
 /* ---------- Trang Tổng quan (cảm hứng) ---------- */
 const QUOTES=[
@@ -1258,6 +1279,89 @@ const QUOTES=[
   'Hãy tự hào vì mỗi bước nhỏ bạn đã đi hôm nay.'
 ];
 function greetNow(){const h=new Date().getHours();return h<11?'Chào buổi sáng ☀️':h<13?'Chào buổi trưa 🌤️':h<18?'Chào buổi chiều 🌇':'Chào buổi tối 🌙'}
+
+/* ---------- Đề xuất phát triển mỗi ngày ---------- */
+const SUGGESTIONS=[
+  {t:'Uống đủ 2 lít nước',d:'Để 1 chai nước trong tầm mắt; uống 1 ngụm mỗi lần đứng dậy.'},
+  {t:'Đi bộ 8.000 bước',d:'Chia nhỏ: đi bộ 10 phút sau mỗi bữa ăn là đủ.'},
+  {t:'Ngủ trước 23h',d:'Đặt báo “giờ đi ngủ” trước 30 phút để chuẩn bị.'},
+  {t:'Giãn cơ 10 phút buổi sáng',d:'Cơ thể tỉnh táo, tâm trí sắc bén cả ngày.'},
+  {t:'Tắt màn hình 30 phút trước khi ngủ',d:'Thay bằng đọc vài trang sách — ngủ sâu hơn hẳn.'},
+  {t:'Đọc 10 trang sách',d:'10 trang/ngày ≈ 12 cuốn/năm. Nhỏ mà cộng dồn khổng lồ.'},
+  {t:'Học 1 khái niệm mới',d:'Ghi lại 2 câu về nó — dạy lại được là đã hiểu.'},
+  {t:'Dạy lại điều vừa học cho ai đó',d:'Giải thích cho người khác giúp bạn nhớ gấp đôi.'},
+  {t:'Chọn 1 việc quan trọng nhất',d:'Làm nó TRƯỚC mọi thứ khác, kể cả khi chỉ 25 phút.'},
+  {t:'Quy tắc 2 phút',d:'Việc gì làm dưới 2 phút thì làm ngay, đừng để dồn.'},
+  {t:'Pomodoro 25 phút tập trung',d:'Tắt thông báo, hẹn 25 phút, chỉ làm một việc.'},
+  {t:'Chuẩn bị đồ tối hôm trước',d:'Bớt quyết định vụn vặt buổi sáng = nhiều năng lượng hơn.'},
+  {t:'Nhắn hỏi thăm 1 người lâu không gặp',d:'Một tin nhắn ngắn có thể làm sáng cả ngày của họ.'},
+  {t:'Khen thật lòng 1 người',d:'Cụ thể về hành động, không chung chung.'},
+  {t:'Gọi điện cho bố mẹ',d:'5 phút thôi — điều họ cần là được nghe giọng bạn.'},
+  {t:'15 phút chất lượng, không điện thoại',d:'Dành trọn cho vợ/con: nhìn vào mắt, lắng nghe.'},
+  {t:'Lắng nghe không ngắt lời',d:'Trong 1 cuộc trò chuyện hôm nay, chỉ nghe và hỏi.'},
+  {t:'Ghi lại chi tiêu hôm nay',d:'Thấy tiền đi đâu là bước đầu để làm chủ nó.'},
+  {t:'Hoãn 1 món muốn mua 24 giờ',d:'Nếu sau 1 ngày vẫn muốn, hãy mua. Đa số sẽ hết muốn.'},
+  {t:'Rà 1 khoản chi định kỳ',d:'Có gói/đăng ký nào không dùng mà vẫn trả tiền không?'},
+  {t:'Tự động chuyển tiết kiệm',d:'Trả cho mình trước: cài chuyển tự động ngay đầu tháng.'},
+  {t:'Thiền/hít thở sâu 5 phút',d:'Hít 4 giây — giữ 4 — thở ra 6. Lặp lại. Tâm tĩnh lại.'},
+  {t:'Viết 3 điều biết ơn',d:'Não quen tìm điều tốt → tâm trạng tốt hơn mỗi ngày.'},
+  {t:'Đi bộ 10 phút không điện thoại',d:'Để đầu óc “tiêu hoá” suy nghĩ — ý hay thường đến lúc này.'},
+  {t:'Buông 1 việc ngoài tầm kiểm soát',d:'Chỉ dồn sức cho phần bạn tác động được.'},
+  {t:'Xin 1 phản hồi thẳng',d:'Hỏi đồng nghiệp/bạn: “Mình nên cải thiện điều gì?”'},
+  {t:'Giúp 1 người trong đội',d:'Cho đi sự hỗ trợ hôm nay, bạn xây uy tín dài hạn.'},
+  {t:'Ghi 1 bài học từ sai lầm',d:'Thất bại là dữ liệu. Rút 1 điều để lần sau khác đi.'},
+  {t:'Việc này có thật sự cần không?',d:'Nghi ngờ yêu cầu — xoá bớt trước khi tối ưu (kiểu Musk).'},
+  {t:'Tìm cách nhanh hơn 10 lần',d:'Nếu bắt buộc nhanh gấp 10, bạn sẽ làm khác thế nào?'},
+  {t:'Tự động hoá 1 việc lặp lại',d:'Việc nào làm đi làm lại → tìm cách để nó tự chạy.'},
+  {t:'Hỏi “sự thật căn bản ở đây là gì?”',d:'Suy luận từ nguyên lý gốc, đừng sao chép người khác.'},
+  {t:'Làm 1 việc tử tế vô danh',d:'Không cần ai biết — niềm vui thầm lặng nuôi dưỡng bạn.'},
+  {t:'Tự khen 1 điều mình làm tốt',d:'Ghi nhận bản thân cũng quan trọng như phấn đấu.'},
+  {t:'Tha thứ cho 1 lỗi của mình',d:'Bạn là người, không phải cỗ máy. Nhẹ nhàng rồi bước tiếp.'},
+  {t:'Hình dung con người bạn muốn trở thành',d:'1 phút hình dung rõ — rồi hành động 1 việc giống người đó.'},
+  {t:'Ăn chậm, nhai kỹ 1 bữa',d:'Nhai kỹ giúp tiêu hoá tốt và ăn vừa đủ.'},
+  {t:'Dọn 1 góc nhỏ',d:'Một góc bàn gọn → đầu óc cũng gọn theo.'},
+  {t:'Không lướt mạng 30 phút đầu ngày',d:'Bắt đầu ngày bằng ý định của bạn, không phải của người khác.'},
+  {t:'Đơn giản hoá 1 việc đang rối',d:'Bỏ 1 bước thừa trong quy trình bạn làm hằng ngày.'},
+  {t:'Viết ra nỗi lo rồi phân loại',d:'Việc nào làm được thì lên kế hoạch, còn lại thì buông.'},
+  {t:'Học từ một người bạn ngưỡng mộ',d:'Xem 1 bài phỏng vấn/bài viết của họ, ghi 1 điều áp dụng.'},
+  {t:'Đặt 1 mục tiêu nhỏ cho ngày mai',d:'Kết ngày bằng việc chọn “1 việc quan trọng” của mai.'},
+  {t:'Nói “không” với 1 việc không quan trọng',d:'Mỗi lần từ chối đúng chỗ là thêm thời gian cho điều lớn.'},
+  {t:'Vận động sức mạnh 10 phút',d:'Hít đất/squat vài hiệp — cơ bắp là “tài khoản hưu trí” sức khoẻ.'},
+  {t:'Gửi lời cảm ơn cụ thể tới 1 người',d:'“Cảm ơn vì… điều đó giúp mình…” — chân thành, cụ thể.'},
+  {t:'Rời điện thoại khỏi phòng ngủ',d:'Sạc ở phòng khác — ngủ ngon và sáng dậy chủ động hơn.'},
+  {t:'Ôn lại mục tiêu năm 2 phút',d:'Nhìn lại “vì sao” để hôm nay đi đúng hướng.'}
+];
+let SUGGEST_IDX=null;
+function suggestDayNum(){ return Math.floor(parseISO(todayISO()).getTime()/86400000); }
+function suggestToday(){ const i=(SUGGEST_IDX!=null?SUGGEST_IDX:suggestDayNum()); return SUGGESTIONS[((i%SUGGESTIONS.length)+SUGGESTIONS.length)%SUGGESTIONS.length]; }
+function suggestReroll(){ SUGGEST_IDX=Math.floor((suggestDayNum()+ (SUGGEST_IDX==null?1:SUGGEST_IDX+1))%SUGGESTIONS.length); if(SUGGEST_IDX===suggestDayNum()%SUGGESTIONS.length)SUGGEST_IDX=(SUGGEST_IDX+1)%SUGGESTIONS.length; renderSuggest(); }
+function suggestReset(){ SUGGEST_IDX=null; renderSuggest(); }
+function suggestNudges(){
+  const out=[]; const e=BYDATE[todayISO()];
+  const hasJournal=!!e&&FIELDS.some(f=>{const v=(e.data||{})[f.id]; if(f.type==='checklist'){const c=normCheck(v);return c.done.length||c.note} if(f.type==='gratitude')return Array.isArray(v)&&v.length; return v&&String(v).trim();});
+  if(!hasJournal) out.push({i:'✍️',t:'Chưa viết nhật ký hôm nay',d:'Dành 3 phút ghi 1 dòng tổng kết + 1 điều biết ơn.',lab:'Viết ngay',fn:"setView('goals')"});
+  const areas=(GOALS.areas||[]);
+  if(areas.length){ const cutoff=parseISO(todayISO()); cutoff.setDate(cutoff.getDate()-7); let worst=null,wc=1e9;
+    areas.forEach(a=>{ let n=0; (a.checkins||[]).forEach(c=>{try{if(parseISO(c.date)>=cutoff)n++}catch(_){}}); if(n<wc){wc=n;worst=a;} });
+    if(worst&&wc===0) out.push({i:goalIcon(worst),t:'“'+(worst.name||'Mục tiêu')+'” chưa được chạm tuần này',d:'Làm việc nhỏ nhất cho mục tiêu này hôm nay — dù chỉ 10 phút.',lab:'Check-in',fn:"editGoalQuick('"+worst.id+"')"});
+  }
+  const cols=(GOALS.board&&GOALS.board.cols)||[]; let tc=null,tn=0;
+  cols.forEach(c=>{ if(c.check){ let n=0;(c.cards||[]).forEach(x=>{if(!x.done)n++}); if(n>tn){tn=n;tc=c;} } });
+  if(tc&&tn) out.push({i:'✅',t:'Còn '+tn+' việc chưa xong ở “'+(tc.title||'')+'”',d:'Chọn 1 việc dễ nhất và hoàn thành nó ngay bây giờ.',lab:'Mở bảng',fn:"setView('goals')"});
+  return out;
+}
+function renderSuggest(){
+  const s=suggestToday(); const nudges=suggestNudges(); const q=QUOTES[((suggestDayNum()%QUOTES.length)+QUOTES.length)%QUOTES.length];
+  let h='<div class="sg-wrap"><div class="sg-head"><div class="sg-title serif">💡 Đề xuất phát triển hôm nay</div><div class="sg-date">'+weekdayName(todayISO())+' · '+fmtD(todayISO())+'</div></div>';
+  h+='<div class="sg-card main"><div class="sg-tag">Gợi ý mỗi ngày</div><div class="sg-t">'+escapeHtml(s.t)+'</div><div class="sg-d">'+escapeHtml(s.d)+'</div>'+
+     '<div class="sg-acts"><button class="gbtn" onclick="addSuggestToBoard()">＋ Lưu vào bảng</button><button class="gbtn ghost" onclick="suggestReroll()">🔀 Gợi ý khác</button>'+(SUGGEST_IDX!=null?'<button class="gbtn ghost" onclick="suggestReset()">↩︎ Về hôm nay</button>':'')+'</div></div>';
+  if(nudges.length){ h+='<div class="sg-sub">🎯 Nhắc riêng cho bạn</div>';
+    nudges.forEach(n=>{ h+='<div class="sg-card"><div class="sg-nt">'+n.i+' '+escapeHtml(n.t)+'</div><div class="sg-d">'+escapeHtml(n.d)+'</div><div class="sg-acts"><button class="gbtn sm" onclick="'+n.fn+'">'+n.lab+'</button></div></div>'; });
+  }
+  h+='<div class="sg-quote">“'+escapeHtml(q)+'”</div><div class="sg-note">Mỗi ngày một đề xuất mới — nhỏ mà đều, một năm sau bạn sẽ rất khác. 🌱</div></div>';
+  $('suggestView').innerHTML=h;
+}
+function addSuggestToBoard(){ const s=suggestToday(); const b=kbBoard(); let col=(b.cols||[]).find(c=>String(c.title||'').indexOf('Đề xuất')>=0); if(!col){ col={id:goalUid(),title:'💡 Đề xuất',color:'#E0B93C',check:true,cards:[]}; b.cols.push(col); } col.cards=col.cards||[]; col.cards.unshift({id:goalUid(),text:s.t}); persistGoals(); toast('Đã lưu vào bảng (cột 💡 Đề xuất) ✅'); }
 function renderHome(){ renderHomeStrip(); $('homeToday').innerHTML=''; renderHomeHighlights(); }
 function goAddToday(){selDate=todayISO();const d=parseISO(selDate);calY=d.getFullYear();calM=d.getMonth();setView('day')}
 
