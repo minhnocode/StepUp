@@ -853,7 +853,6 @@ const DEFAULT_FIELDS = [
   {id:'summary',      label:'Tổng kết ngày', type:'text',   placeholder:'Hôm nay diễn ra thế nào?'},
   {id:'gratitude',    label:'Biết ơn',       type:'gratitude', placeholder:'Điều bạn biết ơn…'},
   {id:'achievements', label:'Thành tựu',     type:'checklist', options:['Dậy sớm','Vận động 30\'','Dọn nhà'], placeholder:'Thành tựu khác hôm nay…'},
-  {id:'lessons',      label:'Bài học',       type:'text',   placeholder:'Rút ra được điều gì?'},
   {id:'learn',        label:'Hôm nay học được gì', type:'text', placeholder:'Insight/bài học rút ra hôm nay…'},
   {id:'change',       label:'Làm lại sẽ đổi gì',   type:'text', placeholder:'Nếu làm lại, mình sẽ điều chỉnh…'},
 ];
@@ -888,7 +887,7 @@ function migrateFields(fields){
     if(f.id==='gratitude'&&f.type==='people')return {...f,type:'gratitude'};
     if(f.id==='achievements'&&f.type==='text')return {...f,type:'checklist',options:(f.options&&f.options.length?f.options:['Dậy sớm','Vận động 30\'','Dọn nhà'])};
     return f;
-  }).filter(Boolean);
+  }).filter(Boolean).filter(f=>f.id!=='lessons');   // bỏ "Bài học" (trùng với "Hôm nay học được gì")
   // đảm bảo 2 câu "Học / Đổi" (vòng phản hồi kiểu Musk) luôn có
   [{id:'learn',label:'Hôm nay học được gì',type:'text',placeholder:'Insight/bài học rút ra hôm nay…'},
    {id:'change',label:'Làm lại sẽ đổi gì',type:'text',placeholder:'Nếu làm lại, mình sẽ điều chỉnh…'}]
