@@ -773,7 +773,7 @@
       </div>
       <button class="today-btn" onclick="goToday()">Về hôm nay</button>
 
-      <div id="lockBanner" class="lock-banner hidden">🔒 Ngày này đã ghi — chỉ xem, không thể sửa hoặc xoá.</div>
+      <div id="lockBanner" class="lock-banner hidden">🔒 Ngoài 3 ngày gần nhất — chỉ xem, không sửa/xoá.</div>
       <div id="fieldsHost"></div>
 
       <div class="field">
@@ -2147,7 +2147,7 @@ function openDayISO(iso){selDate=iso;const d=parseISO(iso);calY=d.getFullYear();
 /* ---------- Ngày ---------- */
 function blankEntry(date){return {id:'',date:date,data:{},images:[]}}
 function loadCurrent(){const e=BYDATE[selDate];current=e?JSON.parse(JSON.stringify(e)):blankEntry(selDate)}
-function dayLocked(){return !!current.id && selDate<todayISO()}   // ngày quá khứ đã ghi -> chỉ xem
+function dayLocked(){ const diff=Math.round((parseISO(todayISO())-parseISO(selDate))/86400000); return diff<0 || diff>3; }   // sửa được: hôm nay + 3 ngày gần nhất; ngoài ra chỉ xem
 function renderDay(){
   loadCurrent();
   const locked=dayLocked();
@@ -2368,7 +2368,7 @@ async function flushPending(){
 
 /* ---------- Lưu / xoá ngày (lưu ngay tại máy, đẩy lên Sheet ngầm) ---------- */
 async function saveDay(){
-  if(dayLocked()){toast('Ngày đã ghi trước đây — không thể sửa.',true);return}
+  if(dayLocked()){toast('Chỉ sửa được nhật ký trong 3 ngày gần nhất.',true);return}
   collectFields();
   const hasContent=FIELDS.some(f=>{const v=current.data[f.id];
     if(f.type==='checklist'){const c=normCheck(v);return c.done.length||c.note}
@@ -2388,7 +2388,7 @@ async function saveDay(){
 }
 async function deleteDay(){
   if(!current||!current.id)return;
-  if(dayLocked()){toast('Ngày đã ghi trước đây — không thể xoá.',true);return}
+  if(dayLocked()){toast('Chỉ xoá được nhật ký trong 3 ngày gần nhất.',true);return}
   if(!confirm('Xoá nhật ký ngày này? Ảnh kèm theo cũng sẽ vào thùng rác.'))return;
   const id=current.id;
   ENTRIES=ENTRIES.filter(e=>e.id!==id);clearPending(id);indexEntries();store.set('journal_cache',JSON.stringify(ENTRIES));
